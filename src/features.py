@@ -1,40 +1,58 @@
-import os
 import pandas as pd
-from scipy.sparse import csr_matrix
-
-def cargar_matriz_interaccion(filepath=None):
-    """Carga y valida la matriz de interacción real de forma robusta."""
-    if filepath is None:
-        # Obtiene la ruta absoluta de la carpeta 'src' y busca 'data' en la raíz
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        filepath = os.path.join(base_dir, '../data/matriz_interaccion.csv')
-        
-    df_pivot = pd.read_csv(filepath, index_col=0)
-    if df_pivot.isnull().sum().sum() > 0:
-        df_pivot = df_pivot.fillna(0)
-    return df_pivot
+import numpy as np
 
 def calcular_variables_agregadas(df_transacciones):
-    """Genera métricas de comportamiento: frecuencia, volumen monetario y afinidades."""
-    frecuencia = df_transacciones.groupby('customer_name').size().rename('frecuencia_compra')
-    volumen_monetario = df_transacciones.groupby('customer_name')['sales'].sum().rename('volumen_monetario')
+    # Normalizar nombres de columnas a minúsculas y reemplazar espacios por guiones bajos
+    df_transacciones.columns = df_transacciones.columns.str.strip().str.lower().str.replace(' ', '_')
     
-    cat_preferencias = pd.crosstab(df_transacciones['customer_name'], df_transacciones['category'])
-    cat_preferencias.columns = [f'pref_cat_{col.lower()}' for col in cat_preferencias.columns]
-    
-    subcat_afinidades = pd.crosstab(df_transacciones['customer_name'], df_transacciones['sub_category'])
-    subcat_afinidades.columns = [f'afin_subcat_{col.lower().replace(" ", "_")}' for col in subcat_afinidades.columns]
-    
-    df_features = pd.concat([frecuencia, volumen_monetario, cat_preferencias, subcat_afinidades], axis=1).fillna(0)
-    return df_features
+    # Compatibilidad con identificadores de producto
+    if 'product_id' in df_transacciones.columns and 'product_code' not in df_transacciones.columns:
+        df_transacciones['product_code'] = df_transacciones['product_id']
 
-def optimizar_matriz_dispersa(df_pivot):
-    """Convierte la matriz densa en dispersa (CSR) y extrae listas de mapeo."""
-    sparse_matrix = csr_matrix(df_pivot.values)
-    lista_clientes = df_pivot.index.tolist()
-    lista_productos = df_pivot.columns.tolist()
-    return sparse_matrix, lista_clientes, lista_productos
+    # Forzar conversión de columnas numéricas clave por si tienen texto o formato con comas
+    for col in ['sales', 'quantity', 'profit', 'discount']:
+        if col in df_transacciones.columns:
+            df_transacciones[col] = pd.to_numeric(df_transacciones[col].astype(str).str.replace(',', '.'), errors='coerce')
 
-if __name__ == "__main__":
-    df_test = cargar_matriz_interaccion()
-    print(f"Prueba exitosa - Dimensiones cargadas: {df_test.shape}")
+    # 1. Extracción de características temporales a partir de order_date
+    if 'order_date' in df_transacciones.columns:
+        df_transacciones['order_date'] = pd.to_datetime(df_transacciones['order_date'], errors='coerce')
+        df_transacciones['order_year'] = df_transacciones['order_date'].dt.year
+        df_transacciones['order_month'] = df_transacciones['order_date'].dt.month
+        df_transacciones['order_dayofweek'] = df_transacciones['order_date'].dt.dayofweek
+
+    # 2. Métricas de comportamiento y RFM por cliente
+    fecha_ref = df_transacciones['order_date'].max() + pd.Timedelta(days=1) if 'order_date' in df_transacciones.columns and df_transacciones['order_date'].notna().any() else pd.Timestamp.today()
+    
+    agg_dict_cliente = {}
+    if 'order_date' in df_transacciones.columns:
+        agg_dict_cliente['recencia'] = ('order_date', lambda x: (fecha_ref - x.max()).days if pd.notna(x.max()) else 0)
+    if 'order_id' in df_transacciones.columns:
+        agg_dict_cliente['frecuencia_compra'] = ('order_id', 'count')
+    elif 'sales' in df_transacciones.columns:
+        agg_dict_cliente['frecuencia_compra'] = ('sales', 'count')
+    if 'product_code' in df_transacciones.columns:
+        agg_dict_cliente['productos_distintos'] = ('product_code', 'nunique')
+    if 'quantity' in df_transacciones.columns:
+        agg_dict_cliente['unidades_totales'] = ('quantity', 'sum')
+    if 'sales' in df_transacciones.columns:
+        agg_dict_cliente['gasto_total'] = ('sales', 'sum')
+        agg_dict_cliente['ticket_promedio'] = ('sales', 'mean')
+
+    features_cliente = df_transacciones.groupby('customer_name').agg(**agg_dict_cliente).reset_index()
+
+    # 3. Métricas de rendimiento y popularidad por producto
+    prod_col = 'product_code' if 'product_code' in df_transacciones.columns else df_transacciones.columns[0]
+    
+    agg_dict_prod = {}
+    if 'sales' in df_transacciones.columns:
+        agg_dict_prod['popularidad_global'] = ('sales', 'count')
+        agg_dict_prod['ventas_acumuladas'] = ('sales', 'sum')
+    if 'customer_name' in df_transacciones.columns:
+        agg_dict_prod['clientes_distintos'] = ('customer_name', 'nunique')
+    if 'quantity' in df_transacciones.columns:
+        agg_dict_prod['unidades_acumuladas'] = ('quantity', 'sum')
+
+    features_producto = df_transacciones.groupby(prod_col).agg(**agg_dict_prod).reset_index()
+
+    return features_cliente, features_producto
