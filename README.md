@@ -69,6 +69,7 @@ nexadata-superstore-recommender/
 ├── requirements.txt       # Dependencias del proyecto
 └── README.md              # Documentación principal del proyecto
 
+
 ---
 ## 🔍 4. Análisis Exploratorio de Datos (EDA) & Hallazgos
 
@@ -107,25 +108,25 @@ Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.i
  
  1. Clonar el repositorio:
  git clone [https://github.com/tu-usuario/nexadata-superstore-recommender.git](https://github.com/tu-usuario/nexadata-superstore-recommender.git)
-cd nexadata-superstore-recommender
+ cd nexadata-superstore-recommender
 
-2. Crear y activar un entorno virtual:
-python -m venv venv
-# En Windows:
-venv\Scripts\activate
-# En Mac/Linux:
-source venv/bin/activate
+ 2. Crear y activar un entorno virtual:
+ python -m venv venv
+ # En Windows:
+ venv\Scripts\activate
+ # En Mac/Linux:
+ source venv/bin/activate
 
-3. Instalar las dependencias:
-pip install -r requirements.txt
+ 3. Instalar las dependencias:
+ pip install -r requirements.txt
 
-4. Ejecutar el pipeline de procesamiento y limpieza:
-python src/preprocessing.py
+ 4. Ejecutar el pipeline de procesamiento y limpieza:
+ python src/preprocessing.py
 
 ---
 ## 🔍  8. Próximos Pasos (Sprint 2)
 
-Para la siguiente iteración del proyecto, el equipo de desarrollo se enfocará en:
+ Para la siguiente iteración del proyecto, el equipo de desarrollo se enfocará en:
     Finalización del modelado de filtrado colaborativo y experimentación con algoritmos de vecinos cercanos (KNN).
     Despliegue de los endpoints de recomendación mediante la API en FastAPI.
     Configuración de tableros de monitoreo y pruebas de rendimiento del sistema. 
