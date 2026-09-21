@@ -1,5 +1,6 @@
-import pandas as pd
+import os
 import numpy as np
+import pandas as pd
 
 def calcular_variables_agregadas(df_transacciones):
     # Normalizar nombres de columnas a minúsculas y reemplazar espacios por guiones bajos
@@ -56,3 +57,11 @@ def calcular_variables_agregadas(df_transacciones):
     features_producto = df_transacciones.groupby(prod_col).agg(**agg_dict_prod).reset_index()
 
     return features_cliente, features_producto
+
+
+def cargar_matriz_interaccion(ruta='../data/matriz_interaccion.csv'):
+    """Carga y estructura la matriz de interacciones desde el dataset procesado."""
+    if os.path.exists(ruta):
+        return pd.read_csv(ruta, index_col=0)
+    else:
+        raise FileNotFoundError(f"No se encontró el archivo de matriz de interacción en: {ruta}")
