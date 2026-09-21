@@ -129,3 +129,22 @@ Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.i
     Finalización del modelado de filtrado colaborativo y experimentación con algoritmos de vecinos cercanos (KNN).
     Despliegue de los endpoints de recomendación mediante la API en FastAPI.
     Configuración de tableros de monitoreo y pruebas de rendimiento del sistema. 
+---
+## 🚀 8. Sprint 2: Evaluación, Despliegue y Demo Funcional
+
+Durante el **Sprint 2**, el equipo consolidó la solución técnica incorporando:
+- **Modelo Híbrido Óptimo:** Combinación de Reducción Dimensional (TruncatedSVD con 50 componentes) y Filtrado Colaborativo basado en Vecinos Cercanos ($k$-NN con $k=10$), alcanzando un **Hit Rate @ 5 de 8.81%**.
+- **API de Producción (FastAPI):** Exposición de endpoints robustos para consultas en tiempo real y métricas de evaluación formal (`/evaluacion/metricas`).
+- **Dashboard Interactivo (Streamlit):** Interfaz web con navegación por pestañas que permite buscar productos similares con nombres comerciales reales y consultar los indicadores clave de rendimiento (KPIs) del negocio.
+
+---
+## 🛠️ 9. Guía de Ejecución Local (Despliegue Dual)
+
+Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), abre **dos terminales independientes** en la raíz del proyecto y sigue estos pasos:
+
+1. **Activar tu entorno virtual:**
+   ```bash
+   # En Windows:
+   venv\Scripts\activate
+   # En Mac/Linux:
+   source venv/bin/activate
