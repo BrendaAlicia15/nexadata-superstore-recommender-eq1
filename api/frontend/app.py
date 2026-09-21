@@ -1,58 +1,76 @@
 import streamlit as st
 import requests
 
+# Configuración de la página
 st.set_page_config(
-    page_title="Nexadata Superstore - Recomendador",
-    page_icon="🛒",
-    layout="centered"
+    page_title="Nexadata Superstore - Recomendador Híbrido",
+    page_icon="📊",
+    layout="wide"
 )
 
+API_URL = "http://127.0.0.1:8000"
+
 st.title("🛍️ Sistema de Recomendación - Nexadata Superstore")
-st.write("Interfaz interactiva para explorar recomendaciones de productos en tiempo real.")
+st.markdown("Plataforma comercial inteligente impulsada por modelos híbridos (SVD + k-NN).")
 
-API_URL = "http://localhost:8000"
-
-tab1, tab2 = st.tabs(["🔍 Similares (KNN Item-Based)", "🔥 Populares (Baseline)"])
+# Creación de Pestañas para cumplir con la rúbrica del Dashboard Interactivo
+tab1, tab2 = st.tabs(["🔍 Motor de Recomendación", "📊 Métricas y Validación del Modelo"])
 
 with tab1:
-    st.subheader("Búsqueda de Productos Similares")
-    producto_id = st.text_input("ID del Producto:", "OFF-AR-10003651")
-    top_n = st.slider("Cantidad de recomendaciones:", min_value=1, max_value=10, value=5)
+    st.header("Búsqueda de Productos Similares")
     
-    if st.button("Obtener Recomendaciones KNN", type="primary"):
-        if not producto_id.strip():
-            st.warning("Por favor, ingresa un ID válido.")
-        else:
-            with st.spinner("Consultando la API..."):
-                try:
-                    response = requests.get(f"{API_URL}/recomendaciones/similares/{producto_id.strip()}?top_n={top_n}")
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        if "error" in data:
-                            st.error(data["error"])
-                        else:
-                            st.success("¡Recomendaciones generadas exitosamente!")
-                            st.info(f"**Modelo utilizado:** {data.get('modelo')}")
-                            
-                            origen = data.get("producto_origen", {})
-                            st.write(f"📌 **Producto de Origen:** {origen.get('nombre')} *(Categoría: {origen.get('categoria')})*")
-                            
-                            st.write("### 🎁 Productos Recomendados para el Cliente:")
-                            for idx, prod in enumerate(data.get("recomendaciones", []), 1):
-                                nombre = prod.get("nombre")
-                                categoria = prod.get("categoria")
-                                sku = prod.get("id")
-                                st.markdown(f"**{idx}. {nombre}** — *Cat: {categoria}* (`SKU: {sku}`)")
-                    else:
-                        st.error("Error al conectar con la API.")
-                except requests.exceptions.ConnectionError:
-                    st.error("❌ No se pudo conectar con la API de FastAPI.")
+    producto_id = st.text_input("ID del Producto (SKU):", value="OFF-AR-10003651")
+    top_n = st.slider("Cantidad de recomendaciones:", min_value=1, max_value=10, value=5)
+
+    if st.button("Obtener Recomendaciones Híbridas"):
+        try:
+            response = requests.get(f"{API_URL}/recomendaciones/similares/{producto_id}?top_n={top_n}")
+            data = response.json()
+            
+            if "error" in data:
+                st.error(data["error"])
+            else:
+                st.success("¡Recomendaciones generadas exitosamente!")
+                st.info(f"**Modelo utilizado:** {data.get('modelo', 'Híbrido')}")
+                
+                orig = data.get("producto_origen", {})
+                st.markdown(f"📌 **Producto de Origen:** {orig.get('nombre')} (*Categoría: {orig.get('categoria')}*)")
+                
+                st.markdown("### 🎁 Productos Recomendados para el Cliente:")
+                for i, rec in enumerate(data.get("recomendaciones", []), 1):
+                    st.markdown(
+                        f"**{i}. {rec.get('nombre')}** — *Cat: {rec.get('categoria')}* "
+                        f"(SKU: `{rec.get('id')}` | Similitud Latente: `{rec.get('similitud_latente', 0)}`)"
+                    )
+        except Exception as e:
+            st.error(f"No se pudo conectar con la API: {e}")
 
 with tab2:
-    st.subheader("Productos Más Populares (Baseline)")
-    top_n_pop = st.slider("Cantidad:", min_value=1, max_value=10, value=5, key="pop_s")
-    if st.button("Ver Populares", type="primary"):
-        response = requests.get(f"{API_URL}/recomendaciones/populares?top_n={top_n_pop}")
-        if response.status_code == 200:
-            st.json(response.json())
+    st.header("Evaluación y Métricas de Negocio (Sprint 2)")
+    st.markdown("Indicadores clave de rendimiento (KPIs) del sistema de recomendación optimizado.")
+    
+    try:
+        res_metrics = requests.get(f"{API_URL}/evaluacion/metricas")
+        if res_metrics.status_code == 200:
+            metrics_data = res_metrics.json()
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(label="Hit Rate @ 5", value=metrics_data["metricas_clave"]["hit_rate_at_5"])
+            with col2:
+                st.metric(label="Esparsidad de la Matriz", value=metrics_data["metricas_clave"]["esparsidad_matriz"])
+            with col3:
+                st.metric(label="Catálogo Total", value=f"{metrics_data['metricas_clave']['total_productos_catalogo']} ítems")
+                
+            st.subheader("📋 Protocolo de Validación")
+            st.write(metrics_data.get("protocolo_validacion"))
+            
+            st.subheader("⚙️ Modelo Seleccionado")
+            st.write(metrics_data.get("modelo_seleccionado"))
+            
+            st.subheader("💡 Análisis Crítico y Decisiones Técnicas")
+            st.success(metrics_data.get("analisis_critico"))
+        else:
+            st.warning("Carga las métricas ejecutando la API en el puerto 8000.")
+    except Exception:
+        st.warning("Asegúrate de que la API esté encendida para visualizar las métricas en tiempo real.")

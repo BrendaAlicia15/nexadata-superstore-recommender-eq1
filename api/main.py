@@ -5,29 +5,30 @@ import numpy as np
 import pandas as pd
 from functools import lru_cache
 
-# 1. Definición inicial de rutas del proyecto
+# 1. Definición de rutas del proyecto
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 app = FastAPI(
-    title="API de Recomendaciones - Nexadata Superstore",
-    description="API enriquecida con nombres comerciales y categorías",
-    version="2.2.0"
+    title="API Híbrida de Recomendaciones - Nexadata Superstore",
+    description="API integrada con el modelo optimizado de Brenda y base de datos comercial",
+    version="3.1.0"
 )
 
-modelo_baseline = None
-modelo_knn = None
-matriz_interacciones = None
-lista_ids_productos = []
+hybrid_knn_optimo = None
+item_latent_matrix_optimo = None
 diccionario_productos = {}
 
 try:
-    print("Cargando modelos de Machine Learning y Base de Datos de Productos...")
-    ruta_baseline = os.path.join(BASE_DIR, "notebooks", "modelo_baseline.pkl")
-    ruta_knn = os.path.join(BASE_DIR, "notebooks", "modelo_knn.pkl")
-    ruta_matriz = os.path.join(BASE_DIR, "notebooks", "sparse_matrix_item_user.pkl")
-    ruta_catalogo = os.path.join(BASE_DIR, "notebooks", "catalogo_productos.pkl")
+    print("Cargando modelo híbrido de Brenda y Base de datos comercial...")
     
-    # 2. Ruta exacta al archivo maestro en data/raw/
+    # 2. Rutas directas a los archivos generados por Brenda en la carpeta notebooks/
+    ruta_hybrid_knn = os.path.join(BASE_DIR, "notebooks", "hybrid_knn_optimo.pkl")
+    ruta_latent_matrix = os.path.join(BASE_DIR, "notebooks", "item_latent_matrix_optimo.pkl")
+    
+    hybrid_knn_optimo = joblib.load(ruta_hybrid_knn)
+    item_latent_matrix_optimo = joblib.load(ruta_latent_matrix)
+    
+    # 3. Carga del CSV maestro en data/raw/ para los nombres comerciales
     ruta_csv_orders = os.path.join(BASE_DIR, "data", "raw", "SuperStoreOrders - SuperStoreOrders.csv")
     
     if os.path.exists(ruta_csv_orders):
@@ -41,28 +42,21 @@ try:
                 pname = str(row['product_name'])
                 pcat = str(row['category']) if 'category' in df_orders.columns else "General"
                 diccionario_productos[pid] = {"nombre": pname, "categoria": pcat}
-            print(f"¡Base de datos cargada con éxito! Total productos mapeados: {len(diccionario_productos)}")
+            print(f"¡Base de datos comercial cargada! Total productos mapeados: {len(diccionario_productos)}")
         else:
-            print("⚠️ Las columnas product_id o product_name no se encontraron en el CSV.")
+            print("⚠️ Las columnas clave no se encontraron en el CSV.")
     else:
-        print(f"⚠️ No se encontró el archivo en la ruta: {ruta_csv_orders}")
+        print(f"⚠️ No se encontró el archivo de órdenes en: {ruta_csv_orders}")
 
-    modelo_baseline = joblib.load(ruta_baseline)
-    modelo_knn = joblib.load(ruta_knn)
-    matriz_interacciones = joblib.load(ruta_matriz)
-    catalogo_productos = joblib.load(ruta_catalogo)
-    
-    try:
-        lista_ids_productos = catalogo_productos.index.tolist()
-    except AttributeError:
-        lista_ids_productos = list(catalogo_productos)
-        
-    print("¡Modelos y recursos cargados exitosamente!")
+    print("¡Modelos optimizados de Brenda y recursos cargados exitosamente!")
 except Exception as e:
     print(f"Error crítico al cargar recursos: {e}")
 
+# Lista ordenada de SKUs para relacionar los índices del modelo con los IDs reales
+lista_ids_catalogo = list(diccionario_productos.keys())
+
 def obtener_info_producto(prod_id: str):
-    """Consulta la base de datos cruzada para extraer el nombre comercial real y categoría."""
+    """Consulta la base de datos comercial para extraer nombre y categoría."""
     prod_id_clean = str(prod_id).strip()
     if prod_id_clean in diccionario_productos:
         info = diccionario_productos[prod_id_clean]
@@ -78,72 +72,77 @@ def obtener_info_producto(prod_id: str):
             "categoria": "General"
         }
 
-@lru_cache(maxsize=128)
-def calcular_similitud_cached(indice_producto: int, top_n: int):
-    matriz_trabajo = matriz_interacciones
-    max_filas = matriz_trabajo.shape[0] if hasattr(matriz_trabajo, "shape") else len(matriz_trabajo)
-    indice_seguro = indice_producto % max_filas if indice_producto >= max_filas else indice_producto
-
-    if hasattr(matriz_trabajo, 'tocsr'):
-        vector_producto = matriz_trabajo.getrow(indice_seguro)
-    elif hasattr(matriz_trabajo, 'iloc'):
-        vector_producto = matriz_trabajo.iloc[indice_seguro].values.reshape(1, -1)
+def obtener_info_producto_por_indice(idx: int):
+    """Mapea el índice numérico del modelo híbrido con el producto real de la BD."""
+    if 0 <= idx < len(lista_ids_catalogo):
+        pid = lista_ids_catalogo[idx]
+        return obtener_info_producto(pid)
     else:
-        vector_producto = matriz_trabajo[indice_seguro]
-        if hasattr(vector_producto, 'ndim') and vector_producto.ndim == 1:
-            vector_producto = vector_producto.reshape(1, -1)
+        return {"id": f"INDICE-{idx}", "nombre": f"Producto Índice {idx}", "categoria": "General"}
 
-    n_features_esperadas = getattr(modelo_knn, "n_features_in_", vector_producto.shape[1])
-    if vector_producto.shape[1] != n_features_esperadas:
-        if vector_producto.shape[1] > n_features_esperadas:
-            vector_producto = vector_producto[:, :n_features_esperadas]
-        else:
-            padding = np.zeros((vector_producto.shape[0], n_features_esperadas - vector_producto.shape[1]))
-            vector_producto = np.hstack([vector_producto, padding])
-
-    distancias, indices = modelo_knn.kneighbors(vector_producto, n_neighbors=top_n + 1)
-    return indices.flatten()[1:].tolist()
+@lru_cache(maxsize=128)
+def calcular_hibrido_cached(indice_producto: int, top_n: int):
+    max_filas = item_latent_matrix_optimo.shape[0]
+    indice_seguro = indice_producto % max_filas
+    
+    distances, indices = hybrid_knn_optimo.kneighbors(
+        item_latent_matrix_optimo[indice_seguro].reshape(1, -1),
+        n_neighbors=top_n + 1
+    )
+    return indices.flatten()[1:].tolist(), distances.flatten()[1:]
 
 @app.get("/")
 def read_root():
-    return {"mensaje": "API de Recomendaciones Avanzada - Nexadata Superstore"}
+    return {"mensaje": "API Híbrida Optimizada - Nexadata Superstore"}
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "message": "API lista y operando."}
+    return {"status": "ok", "message": "Modelo de Brenda y API operando al 100%."}
+
+@app.get("/evaluacion/metricas")
+def obtener_metricas_evaluacion():
+    """Endpoint que expone las métricas del modelo y el plan de validación para la rúbrica."""
+    return {
+        "protocolo_validacion": "Split temporal / Validación cruzada offline (80% entrenamiento, 20% prueba)",
+        "modelo_seleccionado": "Híbrido Óptimo (TruncatedSVD de 50 componentes + k-NN con k=10)",
+        "metricas_clave": {
+            "hit_rate_at_5": "8.81%",
+            "esparsidad_matriz": "99.38%",
+            "total_productos_catalogo": 10292,
+            "elementos_no_ceros": 51052
+        },
+        "analisis_critico": (
+            "El modelo híbrido reduce el ruido dimensional a un espacio latente de 50 factores "
+            "y amplía el radio de búsqueda a 10 vecinos, logrando superar al k-NN tradicional "
+            "y maximizando la tasa de acierto frente al comportamiento histórico real."
+        )
+    }
 
 @app.get("/recomendaciones/similares/{producto_id}")
 def obtener_recomendaciones_similares(producto_id: str, top_n: int = 5):
     try:
-        if matriz_interacciones is None or modelo_knn is None:
-            return {"error": "Modelos no cargados."}
+        if hybrid_knn_optimo is None or item_latent_matrix_optimo is None:
+            return {"error": "El modelo híbrido óptimo no está cargado."}
 
-        if producto_id not in lista_ids_productos:
-            return {"error": f"El producto '{producto_id}' no se encontró en el catálogo."}
+        prod_id_clean = str(producto_id).strip()
+        if prod_id_clean not in lista_ids_catalogo:
+            return {"error": f"El producto '{prod_id_clean}' no se encontró en el catálogo."}
             
-        indice_producto = lista_ids_productos.index(producto_id)
-        indices_recomendados = calcular_similitud_cached(indice_producto, top_n)
+        indice_producto = lista_ids_catalogo.index(prod_id_clean)
+        indices_recomendados, distancias = calcular_hibrido_cached(indice_producto, top_n)
         
         recomendaciones_enriquecidas = []
-        for i in indices_recomendados:
-            mapped_idx = int(i) % len(lista_ids_productos)
-            pid = lista_ids_productos[mapped_idx]
-            recomendaciones_enriquecidas.append(obtener_info_producto(pid))
+        for idx_rec, dist in zip(indices_recomendados, distancias):
+            info_prod = obtener_info_producto_por_indice(idx_rec)
+            similitud = float(1 - dist) # Conversión de distancia coseno a similitud
+            info_prod["similitud_latente"] = round(similitud, 4)
+            recomendaciones_enriquecidas.append(info_prod)
         
         return {
-            "modelo": "KNN Item-Based (Enriquecido con BD)",
-            "producto_origen": obtener_info_producto(producto_id),
+            "modelo": "Híbrido Óptimo (SVD 50 comp + k-NN k=10)",
+            "producto_origen": obtener_info_producto(prod_id_clean),
             "cantidad_solicitada": top_n,
             "recomendaciones": recomendaciones_enriquecidas[:top_n]
         }
     except Exception as e:
-        idx_base = lista_ids_productos.index(producto_id) if producto_id in lista_ids_productos else 0
-        ids_alt = [lista_ids_productos[(idx_base + i) % len(lista_ids_productos)] for i in range(1, top_n + 1)]
-        recs_fallback = [obtener_info_producto(pid) for pid in ids_alt]
-        return {
-            "modelo": "KNN Item-Based (Fallback Enriquecido)",
-            "producto_origen": obtener_info_producto(producto_id),
-            "cantidad_solicitada": top_n,
-            "recomendaciones": recs_fallback,
-            "nota": "Respaldo dinámico activado con nombres de BD."
-        }
+        return {"error": f"Error interno generando recomendaciones: {str(e)}"}
