@@ -1,4 +1,3 @@
-  
 # 🛒 NexaData - Superstore Recommender System
 
 ![Status](https://img.shields.io/badge/Status-En%20Desarrollo-blue)
