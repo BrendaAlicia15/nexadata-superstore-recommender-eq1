@@ -27,21 +27,31 @@ with tab1:
             response = requests.get(f"{API_URL}/recomendaciones/similares/{producto_id}?top_n={top_n}")
             data = response.json()
             
-            if "error" in data:
-                st.error(data["error"])
+            if response.status_code != 200:
+                st.error(data.get("detail", "Ocurrió un error al procesar la solicitud."))
             else:
                 st.success("¡Recomendaciones generadas exitosamente!")
-                st.info(f"**Modelo utilizado:** {data.get('modelo', 'Híbrido')}")
+                
+                # Mostrar info del modelo de forma limpia si es un diccionario
+                modelo_info = data.get('modelo', {})
+                if isinstance(modelo_info, dict):
+                    modelo_str = f"{modelo_info.get('tipo')} ({modelo_info.get('algoritmo')} - SVD: {modelo_info.get('svd_components')} comp, k-NN: k={modelo_info.get('knn_k')})"
+                else:
+                    modelo_str = str(modelo_info)
+                
+                st.info(f"**Modelo utilizado:** {modelo_str}")
                 
                 orig = data.get("producto_origen", {})
-                st.markdown(f"📌 **Producto de Origen:** {orig.get('nombre')} (*Categoría: {orig.get('categoria')}*)")
+                st.markdown(f"📌 **Producto de Origen:** {orig.get('nombre')} (*Categoría: {orig.get('categoria')}* | SKU: `{orig.get('sku')}`)")
                 
                 st.markdown("### 🎁 Productos Recomendados para el Cliente:")
                 for i, rec in enumerate(data.get("recomendaciones", []), 1):
                     st.markdown(
                         f"**{i}. {rec.get('nombre')}** — *Cat: {rec.get('categoria')}* "
-                        f"(SKU: `{rec.get('id')}` | Similitud Latente: `{rec.get('similitud_latente', 0)}`)"
+                        f"(SKU: `{rec.get('sku')}` | Score de Similitud: `{rec.get('score_similitud', 0)}`)"
                     )
+                    if 'explicacion' in rec:
+                        st.caption(f"💡 *{rec.get('explicacion')}*")
         except Exception as e:
             st.error(f"No se pudo conectar con la API: {e}")
 
