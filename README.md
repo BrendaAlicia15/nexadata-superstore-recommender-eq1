@@ -164,3 +164,24 @@ Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), 
    venv\Scripts\activate
    # En Mac/Linux:
    source venv/bin/activate
+
+# Nexadata Superstore Recommender 🚀
+
+Proyecto desarrollado por **NexaData Consulting** para el sistema de recomendación híbrido (SVD + k-NN) y análisis financiero de productos basado en el dataset de Superstore.
+
+---
+
+## 📋 Estructura y Artefactos del Pipeline
+El sistema se basa en un catálogo validado de **10,292 productos únicos** y **795 clientes**, procesando un total de 51,290 transacciones. Los artefactos oficiales se generan de forma reproducible y se almacenan en `artifacts/pipeline/`:
+* `product_ids.json`: Identificadores únicos del catálogo.
+* `product_vectors.joblib`: Matriz de vectores latentes ($10,292 \times 50$)[cite: 4].
+* `product_knn.joblib`: Modelo k-NN ajustado con 10,292 muestras[cite: 4].
+
+---
+
+## 🛠️ Guía de Inicio Rápido (Comandos para la Terminal)
+
+### 1. Configuración automática del entorno y artefactos
+Para generar los artefactos localmente y verificar que todo funcione correctamente, ejecuta el script de configuración:
+```bash
+#### python setup_pipeline.py
