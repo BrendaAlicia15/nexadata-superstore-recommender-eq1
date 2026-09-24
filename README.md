@@ -6,9 +6,11 @@
 
 > **Consultora:** NexaData Analytics  
 > **Industria:** Comercio y Consumo (E-commerce & Retail)  
-> **Proyecto:** Sistema de Recomendación Inteligente de Productos  
+> **Proyecto:** Sistema de Recomendación Inteligente de Productos (End-to-End)
 
 > **Problematica Inicial :** Superstore empresa global  enfrenta una creciente competencia en el mercado minorista, lo que exige una estrategia basada en datos para comprender mejor a sus clientes, productos y desempeño regional. El análisis de miles de registros de transacciones detalla pedidos, envíos y resultados financieros segmentados por categorías y regiones. El problema de negocio consiste en que la compañía no aprovecha de manera óptima su historial transaccional para perfilar las preferencias de los compradores y ofrecerles sugerencias oportunas que impulsen nuevas transacciones.
+
+ 
 ---
 
 ## 👥 Equipo de Trabajo
@@ -45,36 +47,42 @@ Para garantizar una colaboración eficiente entre los miembros del equipo ubicad
 ---
 ## 🗂️ 3. Estructura del Proyecto
 
-El repositorio se encuentra organizado de manera modular para separar limpiamente la lógica de datos, los experimentos, los scripts de producción y las pruebas unitarias:
+El repositorio se encuentra organizado de manera modular:
 
 ```text
-nexadata-superstore-recommender/
+nexadata-superstore-recommender-eq1/
 │
-├── api/                   # Endpoints y lógica de exposición del modelo (FastAPI)
+├── api/
+│   ├── frontend/
+│   │   └── app.py            # Interfaz gráfica interactiva (Streamlit)
+│   ├── main.py               # Endpoints y lógica del Backend (FastAPI)
+│   └── requirements.txt      # Dependencias específicas de la API
+│
+├── artifacts/
+│   └── pipeline/             # Datos limpios y artefactos serializados (SVD, matrices, IDs)
+│
 ├── data/
-│   ├── raw/               # Datos originales inmutables (SuperStoreOrders.csv)
-│   └── processed/         # Datos limpios y matrices transformadas
-├── models/                # Modelos entrenados y serializados
-├── notebooks/             # Bitácoras de experimentación y análisis
-│   ├── 01_eda_and_cleaning.ipynb
-│   ├── 02_feature_engineering.ipynb
-│   └── 03_model_experimentation.ipynb
-├── src/                   # Código fuente modular
-│   ├── __init__.py
-│   ├── preprocessing.py   # Scripts de limpieza y tratamiento sistémico
-│   └── features.py        # Generación de matrices de interacción y variables
-├── tests/                 # Pruebas unitarias e integración
-├── .gitignore
-├── requirements.txt       # Dependencias del proyecto
-└── README.md              # Documentación principal del proyecto
-```
+│   ├── raw/                  # Datos originales inmutables
+│   └── processed/            # Datos limpios y matrices transformadas
+│
+├── models/                   # Modelos entrenados y serializados
+├── src/                      # Código fuente modular
+│   ├── pipeline.py           # Pipeline de preprocesamiento y limpieza
+│   └── train.py              # Entrenamiento del modelo (SVD + k-NN)
+│
+├── notebooks/                # Bitácoras de experimentación y EDA
+├── setup_pipeline.py         # Script automatizado de configuración
+├── test_api.py               # Pruebas automatizadas de integración
+├── requirements.txt          # Dependencias generales del proyecto
+└── README.md                 # Documentación principal
+
 
 ---
 ## 🔍 4. Análisis Exploratorio de Datos (EDA) & Hallazgos
 
 El análisis ejecutado sobre los 51,290 registros y 21 columnas del dataset original (en notebooks/01_eda_and_cleaning.ipynb) permitió descubrir dinámicas comerciales y limitaciones técnicas fundamentales:
 
-  - Márgenes y Descuentos: Se identificaron categorías y subcategorías específicas (como Tables) que generan pérdidas financieras (negative profit) debido a políticas de   descuentos excesivos (superiores al 30%).
+  - Márgenes y Descuentos: Se identificaron categorías y subcategorías específicas (como Tables) que generan pérdidas financieras (negative profit) debido a políticas de descuentos excesivos (superiores al 30%).
 
   - Sparsity (Escasez): La matriz de interacción usuario-producto presenta una dispersión superior al 99%, reflejando que los clientes adquieren solo una fracción muy reducida del catálogo general.
 
@@ -92,6 +100,9 @@ El análisis ejecutado sobre los 51,290 registros y 21 columnas del dataset orig
   - Limpieza, homologación y tipado correcto de variables monetarias y temporales (sales, profit, fechas de envío y pedido).
   - Cuantificación del impacto de cada decisión de limpieza para certificar la integridad analítica del dataset procesado.
 
+  Implementado modularmente en src/pipeline.py y src/train.py:
+  - Limpieza estandarizada de valores nulos y duplicados con un 100% de retención de datos limpios (51,290 transacciones procesadas).
+  - Construcción de una matriz de interacción masiva para 795 clientes y 10,292 productos únicos.
 
 ---
 ## 🛠️ 6. Ingeniería de Características
@@ -139,7 +150,7 @@ Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.i
   ```
 
 ---
-## 🔍  8. Próximos Pasos (Sprint 2)
+## 🔍 Próximos Pasos (Sprint 2)
 
  Para la siguiente iteración del proyecto, el equipo de desarrollo se enfocará en:
     Finalización del modelado de filtrado colaborativo y experimentación con algoritmos de vecinos cercanos (KNN).
@@ -151,10 +162,44 @@ Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.i
 Durante el **Sprint 2**, el equipo consolidó la solución técnica incorporando:
 - **Modelo Híbrido Óptimo:** Combinación de Reducción Dimensional (TruncatedSVD con 50 componentes) y Filtrado Colaborativo basado en Vecinos Cercanos ($k$-NN con $k=10$), alcanzando un **Hit Rate @ 5 de 8.81%**.
 - **API de Producción (FastAPI):** Exposición de endpoints robustos para consultas en tiempo real y métricas de evaluación formal (`/evaluacion/metricas`).
-- **Dashboard Interactivo (Streamlit):** Interfaz web con navegación por pestañas que permite buscar productos similares con nombres comerciales reales y consultar los indicadores clave de rendimiento (KPIs) del negocio.
+- **Dashboard Interactivo (Streamlit):** Interfaz web moderna con navegación navegación orientada a la toma de decisiones de negocio.Las pestañas permiten buscar productos similares con nombres comerciales reales y consultar los indicadores clave de rendimiento (KPIs) del negocio.
 
 ---
-## 🛠️ 9. Guía de Ejecución Local (Despliegue Dual)
+
+## 🛠️ 9. Guía de Instalación y Ejecución Local
+
+Paso 1: Clonar el repositorio y configurar entorno
+
+git clone [https://github.com/BrendaAlicia15/nexadata-superstore-recommender-eq1.git](https://github.com/BrendaAlicia15/nexadata-superstore-recommender-eq1.git)
+cd nexadata-superstore-recommender-eq1
+
+# Crear y activar entorno virtual
+python -m venv venv
+# En Windows:
+venv\Scripts\activate
+# En Mac/Linux:
+source venv/bin/activate
+
+Paso 2: Instalar dependencias
+pip install -r requirements.txt
+pip install -r api/requirements.txt
+
+Paso 3: Ejecutar el Pipeline de Configuración y Pruebas
+python setup_pipeline.py
+python test_api.py
+
+Paso 4: Levantar los Servicios (Despliegue Dual en Paralelo)
+Para levantar todo el sistema, abre dos terminales independientes con tu entorno virtual activo:
+
+Terminal 1 (Backend - FastAPI):
+uvicorn api.main:app --reload
+
+Terminal 2 (Frontend - Streamlit):
+streamlit run api/frontend/app.py
+  (La interfaz web se abrirá automáticamente en http://localhost:8501/)
+
+
+  ## 🛠️ 10. Guía de Ejecución Local (Despliegue Dual)
 
 Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), abre **dos terminales independientes** en la raíz del proyecto y sigue estos pasos:
 
@@ -178,10 +223,3 @@ El sistema se basa en un catálogo validado de **10,292 productos únicos** y **
 * `product_knn.joblib`: Modelo k-NN ajustado con 10,292 muestras[cite: 4].
 
 ---
-
-## 🛠️ Guía de Inicio Rápido (Comandos para la Terminal)
-
-### 1. Configuración automática del entorno y artefactos
-Para generar los artefactos localmente y verificar que todo funcione correctamente, ejecuta el script de configuración:
-```bash
-#### python setup_pipeline.py
