@@ -109,12 +109,71 @@ El análisis ejecutado sobre los 51,290 registros y 21 columnas del dataset orig
 
 Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.ipynb, este bloque comprende:
   - Construcción de las matrices de interacción de usuarios y productos normalizadas.
-  - Generación de variables agregadas de alto valor analítico: frecuencia de compra por cliente, volumen monetario acumulado, categorías preferidas y métricas de afinidad   
-    cruzada entre subcategorías.
-
+  - Generación de variables agregadas de alto valor analítico: frecuencia de compra por cliente, volumen monetario acumulado, categorías preferidas y métricas de afinidad cruzada entre subcategorías.
 
 ---
-## 🚀 7. Instrucciones de Instalación y Ejecución
+
+
+🚀 7. Sprint 2: Evaluación, Despliegue y Demo Funcional
+
+Durante el Sprint 2, el equipo consolidó la solución técnica incorporando:
+
+- Modelo Híbrido Óptimo: Combinación de Reducción Dimensional (TruncatedSVD con 50 componentes) y Filtrado Colaborativo basado en Vecinos Cercanos ($k$-NN con $k=10$), alcanzando un Hit Rate @ 5 de 8.81%.
+
+- API de Producción (FastAPI): Exposición de endpoints robustos para consultas en tiempo real y métricas de evaluación formal (/evaluacion/metricas).
+
+- Dashboard Interactivo (Streamlit): Interfaz web moderna con navegación orientada a la toma de decisiones de negocio, permitiendo buscar productos similares con nombres comerciales reales y consultar los KPIs clave.
+
+---
+
+🛠️ 8. Guía de Ejecución Local (Despliegue Dual)
+Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), abre dos terminales independientes en la raíz del proyecto y sigue estos pasos:
+
+Activar tu entorno virtual:
+
+# En Windows:
+
+venv\Scripts\activate
+
+# En Mac/Linux:
+
+source venv/bin/activate
+
+Instalar dependencias:
+
+pip install -r requirements.txt
+
+pip install -r api/requirements.txt
+
+Ejecutar el Pipeline de Configuración y Pruebas:
+
+python setup_pipeline.py
+
+python test_api.py
+
+Levantar los Servicios en Paralelo:
+
+Terminal 1 (Backend - FastAPI):
+
+uvicorn api.main:app --reload
+
+Terminal 2 (Frontend - Streamlit):
+
+streamlit run api/frontend/app.py
+
+(La interfaz web se abrirá automáticamente en http://localhost:8501/) [cite: 4]
+
+---
+
+## 📋 9. Estructura y Artefactos del Pipeline
+El sistema se basa en un catálogo validado de 10,292 productos únicos y 795 clientes, procesando un total de 51,290 transacciones. Los artefactos oficiales se generan de forma reproducible y se almacenan en artifacts/pipeline/:
+
+product_ids.json: Identificadores únicos del catálogo.
+product_vectors.joblib: Matriz de vectores latentes ($10,292 \times 50$) [cite: 4].
+product_knn.joblib: Modelo k-NN ajustado con 10,292 muestras [cite: 4].
+
+
+## 🚀 10. Instrucciones de Instalación y Ejecución
  
  1. Clonar el repositorio:
  git clone [https://github.com/tu-usuario/nexadata-superstore-recommender.git](https://github.com/tu-usuario/nexadata-superstore-recommender.git)
@@ -148,25 +207,9 @@ Diseñado en src/features.py y documentado en notebooks/02_feature_engineering.i
   ```powershell
    python -m src.pipeline --raw-data "ruta/al/archivo.csv" --output-dir "ruta/de/salida"
   ```
-
----
-## 🔍 Próximos Pasos (Sprint 2)
-
- Para la siguiente iteración del proyecto, el equipo de desarrollo se enfocará en:
-    Finalización del modelado de filtrado colaborativo y experimentación con algoritmos de vecinos cercanos (KNN).
-    Despliegue de los endpoints de recomendación mediante la API en FastAPI.
-    Configuración de tableros de monitoreo y pruebas de rendimiento del sistema. 
----
-## 🚀 8. Sprint 2: Evaluación, Despliegue y Demo Funcional
-
-Durante el **Sprint 2**, el equipo consolidó la solución técnica incorporando:
-- **Modelo Híbrido Óptimo:** Combinación de Reducción Dimensional (TruncatedSVD con 50 componentes) y Filtrado Colaborativo basado en Vecinos Cercanos ($k$-NN con $k=10$), alcanzando un **Hit Rate @ 5 de 8.81%**.
-- **API de Producción (FastAPI):** Exposición de endpoints robustos para consultas en tiempo real y métricas de evaluación formal (`/evaluacion/metricas`).
-- **Dashboard Interactivo (Streamlit):** Interfaz web moderna con navegación navegación orientada a la toma de decisiones de negocio.Las pestañas permiten buscar productos similares con nombres comerciales reales y consultar los indicadores clave de rendimiento (KPIs) del negocio.
-
 ---
 
-## 🛠️ 9. Guía de Instalación y Ejecución Local
+## 🛠️ 11. Guía de Instalación y Ejecución Local
 
 Paso 1: Clonar el repositorio y configurar entorno
 
@@ -199,27 +242,93 @@ streamlit run api/frontend/app.py
   (La interfaz web se abrirá automáticamente en http://localhost:8501/)
 
 
-  ## 🛠️ 10. Guía de Ejecución Local (Despliegue Dual)
-
-Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), abre **dos terminales independientes** en la raíz del proyecto y sigue estos pasos:
-
-1. **Activar tu entorno virtual:**
-   ```bash
-   # En Windows:
-   venv\Scripts\activate
-   # En Mac/Linux:
-   source venv/bin/activate
-
-# Nexadata Superstore Recommender 🚀
-
-Proyecto desarrollado por **NexaData Consulting** para el sistema de recomendación híbrido (SVD + k-NN) y análisis financiero de productos basado en el dataset de Superstore.
-
+   
 ---
 
-## 📋 Estructura y Artefactos del Pipeline
+## 📋 12. Estructura y Artefactos del Pipeline
 El sistema se basa en un catálogo validado de **10,292 productos únicos** y **795 clientes**, procesando un total de 51,290 transacciones. Los artefactos oficiales se generan de forma reproducible y se almacenan en `artifacts/pipeline/`:
 * `product_ids.json`: Identificadores únicos del catálogo.
 * `product_vectors.joblib`: Matriz de vectores latentes ($10,292 \times 50$)[cite: 4].
 * `product_knn.joblib`: Modelo k-NN ajustado con 10,292 muestras[cite: 4].
 
 ---
+
+## 🛠️ 13. Guía de Instalación y Ejecución Dashboard Estratégico
+
+1. Abrir la terminal y activar tu entorno virtual
+Abre una terminal (o la consola de tu editor como VS Code) situada en la carpeta raíz de tu proyecto (nexadata-superstore-recommender-eq1/) y activa tu entorno virtual:
+
+En Windows (CMD o PowerShell): 
+Bash
+venv\Scripts\activate
+
+En Mac / Linux:
+Bash
+source venv/bin/activate
+
+
+2. Verificar dependencias necesarias
+Asegúrate de tener instaladas las librerías requeridas para levantar la interfaz y procesar los modelos (Streamlit, Pandas, Plotly, Scikit-learn, Joblib):
+
+Bash
+pip install streamlit pandas plotly scikit-learn joblib
+
+
+3. Verificar la ubicación de los archivos clave
+Para que el dashboard cargue tanto los datos reales como el modelo de Machine Learning sin errores, verifica que estén en sus respectivas rutas dentro del proyecto:
+
+Dataset limpio: artifacts/pipeline/superstore_cleaned.csv (o en la raíz como respaldo).
+Modelo k-NN serializado: artifacts/pipeline/product_knn.joblib.
+
+4. Ejecutar la aplicación con Streamlit
+Corre el siguiente comando en tu terminal 
+Bash
+streamlit run dashboard_estrategico.py
+
+Streamlit compilará la aplicación de manera inmediata y te proporcionará en la terminal las URLs locales (por ejemplo: http://localhost:8501 o el puerto que asigne automáticamente).
+
+La interfaz gráfica se abrirá de forma automática en tu navegador web predeterminado lista para que interactúes con los reportes estratégicos, el análisis geográfico y el motor de venta cruzada.
+
+
+## 📊 14. Actualización del Sistema: Módulos de Inteligencia de Negocio y Optimización de Inventario (Streamlit Dashboard)
+1. Panel Ejecutivo de Rendimiento Comercial (KPIs y Reportes Globales)
+
+Métricas Principales: Incorporación de tarjetas ejecutivas para el seguimiento en tiempo real de:
+
+- Ventas Totales (en USD).
+- Ganancias Totales (en USD).
+- Ticket Promedio global de la compañía.
+- Volumen Total de Órdenes registradas.
+- Visualizaciones Interactivas (Plotly):
+- Gráficas de barras comparativas de Ventas Totales por Categoría (Furniture, Office Supplies, Technology).
+- Gráfica de barras horizontales del Top de Países con Mayor Volumen de Ventas.
+- Diagrama de anillos (Donut Chart) con el Desglose de Ventas por Subcategoría.
+- Análisis de distribución de ventas por Segmento de Clientes (Consumer, Corporate, Home Office).
+
+2. Análisis Temporal, Geográfico y Preferencias del Consumidor por País
+
+- Evolución Temporal: Gráfica de líneas interactiva que muestra la tendencia y el crecimiento acumulado de las Ventas por Año.
+- Filtro Geográfico Interactivo: Selector dinámico por país que ajusta de manera automática:
+- Las Subcategorías Preferidas en la región seleccionada.
+- Los Productos Estrella y su respectivo volumen transaccional.
+- El Top 10 de Productos con Mayor Venta en ese mercado específico.
+- Insights Automáticos Regionales: Cajas de recomendación dinámicas que calculan el ticket promedio local y sugieren tácticas   
+  comerciales adaptadas al comportamiento de compra de cada país.
+
+ 3. Motor de Recomendación, Venta Cruzada y Optimización de Inventario (k-NN)
+ 
+ Clasificación de Rotación de SKU: El sistema analiza y etiqueta automáticamente el producto seleccionado en dos categorías operativas:
+
+- Alta Rotación 🚀: Productos ancla de gran tracción comercial ideales para estrategias de crecimiento (Cross-Selling).
+- Stock Lento / Clearance ⚠️: Artículos con baja salida en almacén, identificados como candidatos prioritarios para liquidación.
+
+Cálculo Financiero y de Ahorro en Paquetes:
+
+- Selección interactiva de la cantidad de recomendaciones ($N$ vecinos del modelo $k$-NN) y del porcentaje de descuento del combo.- - - Cálculo dinámico del Valor Original del Combo frente al Precio con Descuento, mostrando de forma clara el Ahorro Total para el  
+  Cliente en USD.
+
+Planes de Acción Comercial Automatizados:
+
+- Para Stock Lento: Estrategias de liquidación para liberar espacio físico en almacén y recuperar capital de trabajo sin devaluar la marca mediante rebajas aisladas.
+
+- Para Alta Rotación: Tácticas de empaquetado (Bundling) con artículos complementarios para elevar de forma inmediata el ticket promedio.
