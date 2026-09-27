@@ -280,7 +280,7 @@ with tab_cross:
         btn_generar = st.button("Generar Estrategia de Paquete", type="primary")
 
     with col2:
-        st.markdown("#### 📦 Propuesta Comercial, Precios y Ahorro del Paquete")
+        st.markdown("#### 📦 Propuesta Comercial, Precios, Ganancias y Ahorro del Paquete")
         
         if btn_generar:
             try:
@@ -301,42 +301,77 @@ with tab_cross:
                         if not df_sku_match.empty:
                             precio_ancla = df_sku_match['sales'].mean()
 
-                    st.success(f"Estrategia generada para: **{nombre_ancla}** (`{producto_activo}`) | Precio Base: **${precio_ancla:,.2f} USD**")
+                    st.success(f"Estrategia generada para: **{nombre_ancla}** (`{producto_activo}`) | Venta Base: **${precio_ancla:,.2f} USD**")
 
                     if lista_recoms:
                         filas_tabla = []
                         precios_recomendados = []
+                        ganancias_recomendadas = []
+                        
+                        st.markdown("##### 🔍 Desglose Individual de Recomendaciones y Rentabilidad")
                         
                         for item in lista_recoms:
                             sku_v = item.get("sku")
                             nombre_v = item.get("nombre")
                             cat_v = item.get("categoria")
                             score_v = item.get("score_similitud")
+                            pos_v = item.get("posicion")
                             
                             metricas_api = item.get("metricas", {})
                             sales_api = metricas_api.get("sales", 50.0)
                             qty_api = metricas_api.get("quantity", 1)
-                            
+                            profit_api = metricas_api.get("profit", 0.0)
                             p_unit = metricas_api.get("precio_unitario_usd", (sales_api / qty_api if qty_api > 0 else sales_api))
                             
-                            precios_recomendados.append(p_unit)
+                            precios_recomendados.append(sales_api)
+                            ganancias_recomendadas.append(profit_api)
+                            
+                            # Mostrar tarjeta individual detallada con similitud más grande y ancha
+                            with st.container():
+                                st.markdown(f"**{pos_v}. {nombre_v}** — *Cat: {cat_v}* (`SKU: {sku_v}`)")
+                                
+                                # Columna de similitud ampliada (2.2) para destacar visualmente
+                                c_sim, c_m1, c_m2, c_m3, c_m4 = st.columns([2.2, 1, 1, 1, 1.2])
+                                with c_sim:
+                                    st.markdown(f"**Similitud: {score_v:.2f}**")
+                                    st.progress(float(score_v))
+                                with c_m1:
+                                    st.metric("Ventas", f"${sales_api:,.2f}")
+                                with c_m2:
+                                    st.metric("Unidades", f"{qty_api}")
+                                with c_m3:
+                                    st.metric("Precio Unit.", f"${p_unit:,.2f}")
+                                with c_m4:
+                                    # Cuadro de ganancia con color condicional dinámico
+                                    if profit_api < 0:
+                                        estado_fin = "⚠️ Alerta: Pérdida"
+                                        delta_col = "inverse"
+                                    else:
+                                        estado_fin = "✅ Rentable"
+                                        delta_col = "normal"
+                                        
+                                    st.metric(
+                                        label="Ganancia Neta",
+                                        value=f"${profit_api:,.2f}",
+                                        delta=estado_fin,
+                                        delta_color=delta_col
+                                    )
+                                st.markdown("---")
+
                             filas_tabla.append({
-                                "Ranking": item.get("posicion"),
+                                "Ranking": pos_v,
                                 "SKU": sku_v,
                                 "Nombre del Artículo": nombre_v,
                                 "Categoría": cat_v,
                                 "Ventas API ($)": f"${sales_api:,.2f}",
+                                "Ganancia API ($)": f"${profit_api:,.2f}",
                                 "Cant. API": qty_api,
                                 "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
                                 "Similitud ML": score_v
                             })
 
                         df_bundle = pd.DataFrame(filas_tabla)
-                        
-                        # --- HACER QUE EL ÍNDICE INICIE EN 1 ---
                         df_bundle.index = range(1, len(df_bundle) + 1)
-                        
-                        st.dataframe(df_bundle, use_container_width=True)
                         
                         csv_bundle = df_bundle.to_csv(index=False).encode('utf-8')
                         st.download_button(
@@ -347,17 +382,20 @@ with tab_cross:
                         )
                         
                         suma_precios_vecinos = sum(precios_recomendados)
+                        suma_ganancias_vecinos = sum(ganancias_recomendadas)
+                        
                         precio_total_original = precio_ancla + suma_precios_vecinos
                         monto_descuento = precio_total_original * (paquete_descuento / 100.0)
                         precio_total_con_descuento = precio_total_original - monto_descuento
 
                         st.markdown("---")
-                        st.markdown("#### 💰 Resumen Financiero del Paquete Comercial")
+                        st.markdown("#### 💰 Resumen Financiero y de Rentabilidad del Paquete")
                         
-                        mc1, mc2, mc3 = st.columns(3)
+                        mc1, mc2, mc3, mc4 = st.columns(4)
                         mc1.metric("Valor Original del Combo", f"${precio_total_original:,.2f} USD")
-                        mc2.metric(f"Precio Combo con {paquete_descuento}% Descuento", f"${precio_total_con_descuento:,.2f} USD", delta=f"-${monto_descuento:,.2f} USD de Ahorro", delta_color="inverse")
-                        mc3.metric("Artículos en el Paquete", f"{len(lista_recoms) + 1} Ítems")
+                        mc2.metric(f"Combo con {paquete_descuento}% Desct.", f"${precio_total_con_descuento:,.2f} USD", delta=f"-${monto_descuento:,.2f} USD Ahorro", delta_color="inverse")
+                        mc3.metric("Ganancia Neta Total Estimada", f"${suma_ganancias_vecinos:,.2f} USD", delta="Utilidad Combinada" if suma_ganancias_vecinos >= 0 else "Alerta Pérdida", delta_color="normal" if suma_ganancias_vecinos >= 0 else "inverse")
+                        mc4.metric("Artículos en Paquete", f"{len(lista_recoms) + 1} Ítems")
 
                         st.markdown("---")
                         st.markdown("#### 💡 Plan de Acción y Rotación de Inventario")
@@ -379,7 +417,7 @@ with tab_cross:
             except Exception as e:
                 st.error(f"No se pudo establecer conexión con el backend de FastAPI: {e}")
         else:
-            st.info("👈 Selecciona un producto ancla y haz clic en 'Generar Estrategia de Paquete' para consultar el modelo k-NN de la API en tiempo real.")
+            st.info("👈 Selecciona un producto ancla y haz clic en 'Generar Estrategia de Paquete' para consultar el modelo de la API en tiempo real.")
 
 # --- FOOTER ---
 st.markdown("---")
