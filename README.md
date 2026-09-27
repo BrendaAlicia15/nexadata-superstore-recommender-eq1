@@ -332,3 +332,27 @@ Planes de Acción Comercial Automatizados:
 - Para Stock Lento: Estrategias de liquidación para liberar espacio físico en almacén y recuperar capital de trabajo sin devaluar la marca mediante rebajas aisladas.
 
 - Para Alta Rotación: Tácticas de empaquetado (Bundling) con artículos complementarios para elevar de forma inmediata el ticket promedio.
+---
+## 🚀 Actualizaciones y Módulos Desarrollados por Camilo (Sprint 2)
+
+### 1. Backend de Producción y Métricas Financieras (`api/main.py`)
+- **Cálculo de Precio Unitario en USD (`precio_unitario_usd`):** El backend procesa e incluye nativamente el precio unitario oficial por producto dentro de las respuestas JSON del endpoint de recomendaciones, asegurando coherencia matemática con las ventas y cantidades históricas.
+- **Validación con Pydantic:** Estructura de modelos robusta para garantizar la trazabilidad de los SKUs, nombres, categorías y métricas comerciales (`sales`, `quantity`, `profit`, `precio_unitario_usd`).
+
+### 2. Dashboard Interactivo y Estratégico (`dashboard_camilo.py`)
+- **Sincronización en Tiempo Real con FastAPI:** Conexión directa con el backend para consumir el motor de Machine Learning (`TruncatedSVD + k-NN`) y extraer de forma automática los precios unitarios oficiales y el desempeño comercial de los ítems recomendados.
+- **Tabla de Recomendaciones Optimizada:** Formato visual profesional que elimina los índices por defecto y numera limpiamente las recomendaciones del **1 al 5**.
+- **Gestión Financiera de Paquetes (Bundling):** 
+  - Clasificación automática de SKUs en **Alta Rotación 🚀** o **Stock Lento / Clearance ⚠️**.
+  - Control interactivo de porcentaje de descuento para paquetes comerciales, calculando de forma dinámica el ahorro total para el cliente en USD.
+  - Funcionalidad de exportación de la propuesta comercial directamente a un archivo CSV.
+---
+## 🛠️ Guía de Ejecución Local (Despliegue Dual en Paralelo)
+
+Para levantar tu API y tu dashboard de manera simultánea, abre **dos terminales independientes** en la raíz del proyecto con tu entorno virtual activo:
+
+* **Terminal 1 (Backend - FastAPI):**
+  ```bash
+  uvicorn api.main:app --reload
+
+  streamlit run dashboard_camilo.py --server.headless false
