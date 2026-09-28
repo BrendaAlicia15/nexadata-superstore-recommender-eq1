@@ -1,7 +1,7 @@
 # 🛒 NexaData - Superstore Recommender System
 
-![Status](https://img.shields.io/badge/Status-En%20Desarrollo-blue)
-![Sprint](https://img.shields.io/badge/Sprint-1%20(% ومDemo%201)-green)
+![Status](https://img.shields.io/badge/Status-En%20VersionFinal-blue)
+![Sprint](https://img.shields.io/badge/Sprint-2%20(% Demo%20Final)-green)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blueviolet)
 
 > **Consultora:** NexaData Analytics  
@@ -54,7 +54,7 @@ nexadata-superstore-recommender-eq1/
 │
 ├── api/
 │   ├── frontend/
-│   │   └── app.py            # Interfaz gráfica interactiva (Streamlit)
+│   │   └── app.py            # Interfaz gráfica interactiva alternativa (Streamlit)
 │   ├── main.py               # Endpoints y lógica del Backend (FastAPI)
 │   └── requirements.txt      # Dependencias específicas de la API
 │
@@ -71,6 +71,7 @@ nexadata-superstore-recommender-eq1/
 │   └── train.py              # Entrenamiento del modelo (SVD + k-NN)
 │
 ├── notebooks/                # Bitácoras de experimentación y EDA
+├── dashboard_estrategico.py  # Dashboard Estratégico Global (Streamlit)
 ├── setup_pipeline.py         # Script automatizado de configuración
 ├── test_api.py               # Pruebas automatizadas de integración
 ├── requirements.txt          # Dependencias generales del proyecto
@@ -126,54 +127,15 @@ Durante el Sprint 2, el equipo consolidó la solución técnica incorporando:
 
 ---
 
-🛠️ 8. Guía de Ejecución Local (Despliegue Dual)
-Para levantar todo el sistema de manera local (Backend y Frontend en paralelo), abre dos terminales independientes en la raíz del proyecto y sigue estos pasos:
-
-Activar tu entorno virtual:
-
-# En Windows:
-
-venv\Scripts\activate
-
-# En Mac/Linux:
-
-source venv/bin/activate
-
-Instalar dependencias:
-
-pip install -r requirements.txt
-
-pip install -r api/requirements.txt
-
-Ejecutar el Pipeline de Configuración y Pruebas:
-
-python setup_pipeline.py
-
-python test_api.py
-
-Levantar los Servicios en Paralelo:
-
-Terminal 1 (Backend - FastAPI):
-
-uvicorn api.main:app --reload
-
-Terminal 2 (Frontend - Streamlit):
-
-streamlit run api/frontend/app.py
-
-(La interfaz web se abrirá automáticamente en http://localhost:8501/) [cite: 4]
-
----
-
-## 📋 9. Estructura y Artefactos del Pipeline
+## 📋 8. Estructura y Artefactos del Pipeline
 El sistema se basa en un catálogo validado de 10,292 productos únicos y 795 clientes, procesando un total de 51,290 transacciones. Los artefactos oficiales se generan de forma reproducible y se almacenan en artifacts/pipeline/:
 
 product_ids.json: Identificadores únicos del catálogo.
-product_vectors.joblib: Matriz de vectores latentes ($10,292 \times 50$) [cite: 4].
-product_knn.joblib: Modelo k-NN ajustado con 10,292 muestras [cite: 4].
+product_vectors.joblib: Matriz de vectores latentes ($10,292 \times 50$).
+product_knn.joblib: Modelo k-NN ajustado con 10,292 muestras.
 
-
-## 🚀 10. Instrucciones de Instalación y Ejecución
+---
+## 🚀 9. Instrucciones de Instalación y Ejecución
  
  1. Clonar el repositorio:
  git clone [https://github.com/tu-usuario/nexadata-superstore-recommender.git](https://github.com/tu-usuario/nexadata-superstore-recommender.git)
@@ -209,7 +171,7 @@ product_knn.joblib: Modelo k-NN ajustado con 10,292 muestras [cite: 4].
   ```
 ---
 
-## 🛠️ 11. Guía de Instalación y Ejecución Local
+## 🛠️ 10. Guía de Instalación y Ejecución Local
 
 Paso 1: Clonar el repositorio y configurar entorno
 
@@ -241,11 +203,10 @@ Terminal 2 (Frontend - Streamlit):
 streamlit run api/frontend/app.py
   (La interfaz web se abrirá automáticamente en http://localhost:8501/)
 
-
    
 ---
 
-## 📋 12. Estructura y Artefactos del Pipeline
+## 📋 11. Estructura y Artefactos del Pipeline
 El sistema se basa en un catálogo validado de **10,292 productos únicos** y **795 clientes**, procesando un total de 51,290 transacciones. Los artefactos oficiales se generan de forma reproducible y se almacenan en `artifacts/pipeline/`:
 * `product_ids.json`: Identificadores únicos del catálogo.
 * `product_vectors.joblib`: Matriz de vectores latentes ($10,292 \times 50$)[cite: 4].
@@ -253,7 +214,7 @@ El sistema se basa en un catálogo validado de **10,292 productos únicos** y **
 
 ---
 
-## 🛠️ 13. Guía de Instalación y Ejecución Dashboard Estratégico
+## 🛠️ 12. Guía de Instalación y Ejecución Dashboard Estratégico
 
 1. Abrir la terminal y activar tu entorno virtual
 Abre una terminal (o la consola de tu editor como VS Code) situada en la carpeta raíz de tu proyecto (nexadata-superstore-recommender-eq1/) y activa tu entorno virtual:
@@ -280,17 +241,24 @@ Para que el dashboard cargue tanto los datos reales como el modelo de Machine Le
 Dataset limpio: artifacts/pipeline/superstore_cleaned.csv (o en la raíz como respaldo).
 Modelo k-NN serializado: artifacts/pipeline/product_knn.joblib.
 
-4. Ejecutar la aplicación con Streamlit
-Corre el siguiente comando en tu terminal 
-Bash
-streamlit run dashboard_estrategico.py
+4. Levantar API y Dashboard de manera simultánea.
+Abre **dos terminales independientes** en la raíz del proyecto con tu entorno virtual activo:
 
+* **Terminal 1 (Backend - FastAPI):**
+  ```bash
+  uvicorn api.main:app --reload
+
+* **Terminal 2 (Frontend - Dashboard Estratégico):**
+ Bash
+  streamlit run dashboard_estrategico.py --server.headless false
+
+ 
 Streamlit compilará la aplicación de manera inmediata y te proporcionará en la terminal las URLs locales (por ejemplo: http://localhost:8501 o el puerto que asigne automáticamente).
 
 La interfaz gráfica se abrirá de forma automática en tu navegador web predeterminado lista para que interactúes con los reportes estratégicos, el análisis geográfico y el motor de venta cruzada.
 
-
 ## 📊 14. Actualización del Sistema: Módulos de Inteligencia de Negocio y Optimización de Inventario (Streamlit Dashboard)
+
 1. Panel Ejecutivo de Rendimiento Comercial (KPIs y Reportes Globales)
 
 Métricas Principales: Incorporación de tarjetas ejecutivas para el seguimiento en tiempo real de:
@@ -299,36 +267,75 @@ Métricas Principales: Incorporación de tarjetas ejecutivas para el seguimiento
 - Ganancias Totales (en USD).
 - Ticket Promedio global de la compañía.
 - Volumen Total de Órdenes registradas.
-- Visualizaciones Interactivas (Plotly):
+
+Visualizaciones Interactivas (Plotly):
+
 - Gráficas de barras comparativas de Ventas Totales por Categoría (Furniture, Office Supplies, Technology).
 - Gráfica de barras horizontales del Top de Países con Mayor Volumen de Ventas.
 - Diagrama de anillos (Donut Chart) con el Desglose de Ventas por Subcategoría.
-- Análisis de distribución de ventas por Segmento de Clientes (Consumer, Corporate, Home Office).
 
-2. Análisis Temporal, Geográfico y Preferencias del Consumidor por País
+Análisis de distribución de ventas por Segmento de Clientes (Consumer, Corporate, Home Office).
 
 - Evolución Temporal: Gráfica de líneas interactiva que muestra la tendencia y el crecimiento acumulado de las Ventas por Año.
-- Filtro Geográfico Interactivo: Selector dinámico por país que ajusta de manera automática:
-- Las Subcategorías Preferidas en la región seleccionada.
-- Los Productos Estrella y su respectivo volumen transaccional.
-- El Top 10 de Productos con Mayor Venta en ese mercado específico.
-- Insights Automáticos Regionales: Cajas de recomendación dinámicas que calculan el ticket promedio local y sugieren tácticas   
-  comerciales adaptadas al comportamiento de compra de cada país.
 
- 3. Motor de Recomendación, Venta Cruzada y Optimización de Inventario (k-NN)
- 
- Clasificación de Rotación de SKU: El sistema analiza y etiqueta automáticamente el producto seleccionado en dos categorías operativas:
+- Filtro Geográfico Interactivo: Selector dinámico por país que ajusta de manera automática:
+
+    - Las Subcategorías Preferidas en la región seleccionada.
+    - Los Productos Estrella y su respectivo volumen transaccional.
+    - El Top 10 de Productos con Mayor Venta en ese mercado específico.
+
+- Insights Automáticos Regionales: Cajas de recomendación dinámicas que calculan el ticket promedio local y sugieren tácticas comerciales adaptadas al comportamiento de compra de cada país.
+
+3. Motor de Recomendación, Venta Cruzada y Optimización de Inventario ($k$-NN)
+
+Clasificación de Rotación de SKU: El sistema analiza y etiqueta automáticamente el producto seleccionado en dos categorías operativas:
 
 - Alta Rotación 🚀: Productos ancla de gran tracción comercial ideales para estrategias de crecimiento (Cross-Selling).
 - Stock Lento / Clearance ⚠️: Artículos con baja salida en almacén, identificados como candidatos prioritarios para liquidación.
 
 Cálculo Financiero y de Ahorro en Paquetes:
 
-- Selección interactiva de la cantidad de recomendaciones ($N$ vecinos del modelo $k$-NN) y del porcentaje de descuento del combo.- - - Cálculo dinámico del Valor Original del Combo frente al Precio con Descuento, mostrando de forma clara el Ahorro Total para el  
-  Cliente en USD.
+- Selección interactiva de la cantidad de recomendaciones ($N$ vecinos del modelo $k$-NN) y del porcentaje de descuento del combo.
+- Cálculo dinámico del Valor Original del Combo frente al Precio con Descuento, mostrando de forma clara el Ahorro Total para el     Cliente en USD.
 
 Planes de Acción Comercial Automatizados:
 
 - Para Stock Lento: Estrategias de liquidación para liberar espacio físico en almacén y recuperar capital de trabajo sin devaluar la marca mediante rebajas aisladas.
 
 - Para Alta Rotación: Tácticas de empaquetado (Bundling) con artículos complementarios para elevar de forma inmediata el ticket promedio.
+
+🚀 Actualizaciones y Módulos Desarrollados (Sprint 2) — Integración en Dashboard Estratégico
+
+1. Backend de Producción y Métricas Financieras (api/main.py)
+
+  Cálculo de Precio Unitario en USD (precio_unitario_usd): El backend procesa e incluye nativamente el precio unitario oficial por producto dentro de las respuestas JSON del endpoint de recomendaciones, asegurando coherencia matemática con las ventas y cantidades históricas.
+
+  Validación con Pydantic: Estructura de modelos robusta para garantizar la trazabilidad de los SKUs, nombres, categorías y métricas comerciales (sales, quantity, profit, precio_unitario_usd).
+
+2. Consolidación del Dashboard Interactivo y Estratégico (dashboard_estrategico.py)
+
+- Nota: Toda la lógica de componentes desarrollada inicialmente para pruebas específicas se unificó de manera consolidada en el archivo principal dashboard_estrategico.py para centralizar la operación en una sola interfaz fluida.
+
+- Sincronización en Tiempo Real con FastAPI: Conexión directa con el backend para consumir el motor de Machine Learning (TruncatedSVD + k-NN) y extraer de forma automática los precios unitarios oficiales y el desempeño comercial de los ítems recomendados. 
+  
+  Tabla de Recomendaciones Optimizada: Formato visual profesional que elimina los índices por defecto y numera limpiamente las recomendaciones del 1 al 5.
+
+Gestión Financiera de Paquetes (Bundling):
+
+- Clasificación automática de SKUs en Alta Rotación 🚀 o Stock Lento / Clearance ⚠️.
+
+- Control interactivo de porcentaje de descuento para paquetes comerciales, calculando de forma dinámica el ahorro total para el cliente en USD.
+
+- Funcionalidad de exportación de la propuesta comercial directamente a un archivo CSV.
+
+## 🛠️ Guía de Ejecución Local (Despliegue Dual en Paralelo)
+
+Para levantar tu API y tu dashboard de manera simultánea, abre dos terminales independientes en la raíz del proyecto con tu entorno virtual activo:
+
+Terminal 1 (Backend - FastAPI):
+Bash
+uvicorn api.main:app --reload
+
+Terminal 2 (Frontend - Dashboard Estratégico Unificado):
+Bash
+streamlit run dashboard_estrategico.py --server.headless false

@@ -63,11 +63,15 @@ try:
                 if tot_profit == 0.0:
                     tot_profit = round(float(tot_sales * 0.22), 2)
                 
+                # Cálculo del precio unitario en USD
+                precio_unitario = round(tot_sales / tot_qty, 2) if tot_qty > 0 else tot_sales
+
                 diccionario_productos[pid_clean] = {"nombre": pname, "categoria": str(pcat)}
                 metricas_productos[pid_clean] = {
                     "sales": round(tot_sales, 2), 
                     "quantity": int(tot_qty), 
-                    "profit": round(tot_profit, 2)
+                    "profit": round(tot_profit, 2),
+                    "precio_unitario_usd": round(precio_unitario, 2)
                 }
 except Exception as e:
     print(f"❌ Error en carga: {e}")
@@ -86,10 +90,14 @@ if not lista_ids_catalogo:
     for pid in lista_ids_catalogo:
         diccionario_productos[pid] = {"nombre": f"Producto Comercial {pid}", "categoria": "Office Supplies"}
         h = abs(hash(pid))
+        s_val = round(float(h % 4000 + 300.50), 2)
+        q_val = int(h % 120 + 15)
+        p_unit_val = round(s_val / q_val, 2)
         metricas_productos[pid] = {
-            "sales": round(float(h % 4000 + 300.50), 2),
-            "quantity": int(h % 120 + 15),
-            "profit": round(float(h % 800 + 50.0), 2)
+            "sales": s_val,
+            "quantity": q_val,
+            "profit": round(float(h % 800 + 50.0), 2),
+            "precio_unitario_usd": p_unit_val
         }
 
 print(f"✅ FastAPI listo. Total IDs en catálogo: {len(lista_ids_catalogo)}")
@@ -108,6 +116,7 @@ class MetricasComerciales(BaseModel):
     sales: float = Field(..., description="Ventas totales históricas")
     quantity: int = Field(..., description="Cantidad de unidades vendidas")
     profit: float = Field(..., description="Ganancia neta generada")
+    precio_unitario_usd: float = Field(..., description="Precio unitario en USD calculado por la API")
 
 class RecomendacionItem(InfoProducto):
     posicion: int = Field(..., description="Posición en el ranking")
@@ -146,10 +155,13 @@ def obtener_metricas_producto(prod_id: str):
     if prod_id_clean in metricas_productos:
         return metricas_productos[prod_id_clean]
     h = abs(hash(prod_id_clean))
+    s_val = round(float(h % 4000 + 300.50), 2)
+    q_val = int(h % 120 + 15)
     return {
-        "sales": round(float(h % 4000 + 300.50), 2),
-        "quantity": int(h % 120 + 15),
-        "profit": round(float(h % 800 + 50.0), 2)
+        "sales": s_val,
+        "quantity": q_val,
+        "profit": round(float(h % 800 + 50.0), 2),
+        "precio_unitario_usd": round(s_val / q_val, 2)
     }
 
 
