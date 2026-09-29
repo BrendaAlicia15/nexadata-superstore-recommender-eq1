@@ -5,6 +5,7 @@ import plotly.express as px
 import os
 import joblib
 import requests
+from pathlib import Path
 
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -52,6 +53,13 @@ def obtener_metricas_api():
         "sparsity": "99.38%",
         "total_items": 10292
     }
+
+# --- IDENTIDAD VISUAL EN LA BARRA LATERAL ---
+logo_path = Path(__file__).resolve().parent / "NexaData.png"
+if logo_path.is_file():
+    st.sidebar.image(str(logo_path), width=180)
+else:
+    st.sidebar.warning("Coloca NexaData.png junto a dashboard_estrategico.py")
 
 # --- FILTRO DE TIEMPO DINÁMICO EN LA BARRA LATERAL ---
 if df_cleaned is not None and 'year' in df_cleaned.columns:
