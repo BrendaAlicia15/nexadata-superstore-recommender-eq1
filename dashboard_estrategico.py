@@ -7,6 +7,21 @@ import joblib
 import requests
 from pathlib import Path
 
+# --- FORMATO DE IMPORTES PARA LOS KPIs ---
+def formatear_numero(valor, decimales=2):
+    """Separador de miles y coma decimal para lectura en español."""
+    return f"{valor:,.{decimales}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def formatear_usd(valor, compacto=True):
+    """Abrevia agregados; mantiene precisión en tickets y precios unitarios."""
+    if compacto and abs(valor) >= 1_000_000:
+        return f"{formatear_numero(valor / 1_000_000, 1)} M USD"
+    if compacto and abs(valor) >= 1_000:
+        return f"{formatear_numero(valor / 1_000, 1)} mil USD"
+    return f"{formatear_numero(valor)} USD"
+
+
 # --- 1. CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
     page_title="NexaData - Dashboard Estratégico Superstore",
@@ -103,10 +118,10 @@ with tab_reportes:
         ticket_prom = total_ventas / total_ordenes if total_ordenes > 0 else 0
 
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Ventas Totales", f"${total_ventas:,.2f} USD")
-        col2.metric("Ganancias Totales", f"${total_ganancias:,.2f} USD")
-        col3.metric("Ticket Promedio", f"${ticket_prom:,.2f} USD")
-        col4.metric("Órdenes Registradas", f"{total_ordenes:,}")
+        col1.metric("Ventas Totales", formatear_usd(total_ventas), help=f"Importe exacto: {formatear_usd(total_ventas, compacto=False)}")
+        col2.metric("Ganancias Totales", formatear_usd(total_ganancias), help=f"Importe exacto: {formatear_usd(total_ganancias, compacto=False)}")
+        col3.metric("Ticket Promedio", formatear_usd(ticket_prom, compacto=False))
+        col4.metric("Órdenes Registradas", formatear_numero(total_ordenes, 0))
         
         st.markdown("---")
         
@@ -115,8 +130,22 @@ with tab_reportes:
         with col_g1:
             st.markdown("##### 📦 Ventas Totales por Categoría")
             if 'category' in df_cleaned.columns and 'sales' in df_cleaned.columns:
-                df_cat = df_cleaned.groupby('category')['sales'].sum().reset_index()
-                fig_cat = px.bar(df_cat, x="category", y="sales", color="category", text_auto='.2s', template="plotly_white")
+                df_cat = (
+                    df_cleaned.groupby('category')['sales'].sum().reset_index()
+                    .sort_values('sales', ascending=False, kind='stable')
+                )
+                fig_cat = px.bar(
+                    df_cat, x="category", y="sales", color="category",
+                    text=df_cat['sales'].apply(formatear_usd),
+                    category_orders={"category": df_cat['category'].tolist()},
+                    color_discrete_map={
+                        "Technology": "#00CC96", "Furniture": "#636EFA",
+                        "Office Supplies": "#EF553B"
+                    },
+                    labels={"category": "Categoría", "sales": "Ventas totales (USD)"},
+                    template="plotly_white"
+                )
+                fig_cat.update_layout(showlegend=False)
                 st.plotly_chart(fig_cat, use_container_width=True)
             
         with col_g2:
@@ -131,17 +160,51 @@ with tab_reportes:
         
         col_g3, col_g4 = st.columns(2)
         with col_g3:
-            st.markdown("##### 🏷️ Desglose por Subcategoría")
+            st.markdown("##### 🏷️ Participación en Ventas por Subcategoría: Top 5 y Otros")
             if 'sub_category' in df_cleaned.columns and 'sales' in df_cleaned.columns:
-                df_sub = df_cleaned.groupby('sub_category')['sales'].sum().reset_index().nlargest(10, 'sales')
-                fig_sub = px.pie(df_sub, names="sub_category", values="sales", hole=0.4, template="plotly_white")
-                st.plotly_chart(fig_sub, use_container_width=True)
+                # Agrupar todas las subcategorías antes de seleccionar las líderes.
+                df_sub_total = (
+                    df_cleaned.assign(
+                        sub_category=df_cleaned['sub_category'].fillna('Sin subcategoría')
+                    ).groupby('sub_category')['sales'].sum().reset_index()
+                    .sort_values('sales', ascending=False, kind='stable')
+                )
+                df_sub = df_sub_total.head(5).copy()
+                if len(df_sub_total) > 5:
+                    df_sub = pd.concat([
+                        df_sub,
+                        pd.DataFrame({
+                            "sub_category": ["Otros"],
+                            "sales": [df_sub_total.iloc[5:]['sales'].sum()]
+                        })
+                    ], ignore_index=True)
+                if df_sub_total['sales'].sum() > 0:
+                    fig_sub = px.pie(
+                        df_sub, names="sub_category", values="sales", hole=0.4,
+                        color="sub_category", color_discrete_map={"Otros": "#CBD5E1"},
+                        labels={"sub_category": "Subcategoría", "sales": "Ventas (USD)"},
+                        template="plotly_white"
+                    )
+                    fig_sub.update_traces(
+                        sort=False, textinfo='percent', texttemplate='%{percent:.1%}',
+                        hovertemplate=(
+                            '%{label}<br>Ventas: %{value:,.2f} USD'
+                            '<br>Participación: %{percent:.1%}<extra></extra>'
+                        )
+                    )
+                    st.plotly_chart(fig_sub, use_container_width=True)
+                    st.caption(
+                        "Porcentajes sobre todas las ventas del período seleccionado. "
+                        "Otros agrupa las subcategorías fuera del Top 5."
+                    )
+                else:
+                    st.info("No hay ventas positivas para mostrar la participación.")
 
         with col_g4:
             st.markdown("##### 👥 Distribución por Segmento de Clientes")
             if 'segment' in df_cleaned.columns and 'sales' in df_cleaned.columns:
-                df_seg = df_cleaned.groupby('segment')['sales'].sum().reset_index()
-                fig_seg = px.bar(df_seg, x="segment", y="sales", color="segment", text_auto='.2s', template="plotly_white")
+                df_seg = df_cleaned.groupby('segment')['sales'].sum().reset_index().sort_values('sales', ascending=False, kind='stable')
+                fig_seg = px.bar(df_seg, x="segment", y="sales", color="segment", text_auto='.2s', category_orders={"segment": df_seg["segment"].tolist()}, template="plotly_white")
                 st.plotly_chart(fig_seg, use_container_width=True)
 
         st.markdown("---")
@@ -261,9 +324,9 @@ with tab_geo:
                     subcat_lider = df_filtrado_pais.groupby('sub_category')['sales'].sum().idxmax()
 
                 m1, m2, m3 = st.columns(3)
-                m1.metric(f"Ventas Totales ({pais_seleccionado})", f"${ventas_pais_total:,.2f} USD")
-                m2.metric(f"Ticket Promedio ({pais_seleccionado})", f"${ticket_prom_pais:,.2f} USD")
-                m3.metric(f"Órdenes Regionales", f"{ordenes_pais:,}")
+                m1.metric(f"Ventas Totales ({pais_seleccionado})", formatear_usd(ventas_pais_total), help=f"Importe exacto: {formatear_usd(ventas_pais_total, compacto=False)}")
+                m2.metric(f"Ticket Promedio ({pais_seleccionado})", formatear_usd(ticket_prom_pais, compacto=False))
+                m3.metric(f"Órdenes Regionales", formatear_numero(ordenes_pais, 0))
 
                 st.markdown("")
                 st.success(f"""
