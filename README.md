@@ -1,7 +1,7 @@
 # 🛒 NexaData - Superstore Recommender System
 
 ![Status](https://img.shields.io/badge/Status-En%20VersionFinal-blue)
-![Sprint](https://img.shields.io/badge/Sprint-2%20(% Demo%20Final)-green)
+![Sprint](https://img.shields.io/badge/Sprint-2%20(%20Demo%20Final)-green)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blueviolet)
 
 > **Consultora:** NexaData Analytics  
@@ -257,7 +257,7 @@ Streamlit compilará la aplicación de manera inmediata y te proporcionará en l
 
 La interfaz gráfica se abrirá de forma automática en tu navegador web predeterminado lista para que interactúes con los reportes estratégicos, el análisis geográfico y el motor de venta cruzada.
 
-## 📊 14. Actualización del Sistema: Módulos de Inteligencia de Negocio y Optimización de Inventario (Streamlit Dashboard)
+## 📊 13. Actualización del Sistema: Módulos de Inteligencia de Negocio y Optimización de Inventario (Streamlit Dashboard)
 
 1. Panel Ejecutivo de Rendimiento Comercial (KPIs y Reportes Globales)
 
@@ -328,7 +328,7 @@ Gestión Financiera de Paquetes (Bundling):
 
 - Funcionalidad de exportación de la propuesta comercial directamente a un archivo CSV.
 
-## 🛠️ Guía de Ejecución Local (Despliegue Dual en Paralelo)
+## 🛠️ 14. Guía de Ejecución Local (Despliegue Dual en Paralelo)
 
 Para levantar tu API y tu dashboard de manera simultánea, abre dos terminales independientes en la raíz del proyecto con tu entorno virtual activo:
 
