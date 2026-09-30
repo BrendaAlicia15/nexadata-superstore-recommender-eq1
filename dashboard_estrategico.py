@@ -487,6 +487,18 @@ with tab_cross:
                                     )
                             st.markdown("---")
 
+                        filas_tabla.append({
+                            "Ranking": idx,
+                            "SKU": sku_v,
+                            "Nombre del Artículo": nombre_v,
+                            "Categoría": cat_v,
+                            "Ventas API ($)": f"${sales_api:,.2f}",
+                            "Ganancia API ($)": f"${profit_api:,.2f}",
+                            "Cant. API": qty_api,
+                            "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
+                            "Similitud ML": score_v
+                        })
+
                         df_bundle = pd.DataFrame(filas_tabla)
                         df_bundle.index = range(1, len(df_bundle) + 1)
                         
