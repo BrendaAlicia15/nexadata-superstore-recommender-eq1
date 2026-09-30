@@ -375,7 +375,6 @@ with tab_cross:
         top_n = st.slider("Cantidad de recomendaciones:", min_value=1, max_value=10, value=3)
         paquete_descuento = st.slider("Descuento sugerido para paquete (%)", min_value=0, max_value=50, value=10)
         
-        # Nueva opción para filtrar productos con pérdidas automáticamente
         excluir_perdidas = st.checkbox("🚫 Excluir productos con pérdida automáticamente", value=True)
         
         st.markdown("---")
@@ -386,7 +385,6 @@ with tab_cross:
         
         if generar_estrategia:
             try:
-                # Solicitamos un conjunto más amplio a la API (hasta 15) para tener margen de reemplazo al filtrar pérdidas
                 url_api_recom = f"http://127.0.0.1:8000/recomendaciones/similares/{producto_activo}?top_n=15"
                 resp_recom = requests.get(url_api_recom, timeout=5)
                 
@@ -397,20 +395,18 @@ with tab_cross:
                     
                     nombre_ancla = info_origen.get("nombre", producto_activo)
                     
-                    # Filtrado de recomendaciones según la opción de excluir pérdidas
                     lista_recoms = []
                     for item in lista_recoms_raw:
                         metricas_api = item.get("metricas", {})
                         profit_api = metricas_api.get("profit", 0.0)
                         
                         if excluir_perdidas and profit_api < 0:
-                            continue  # Omite productos con pérdida y busca en las siguientes opciones
+                            continue  
                         
                         lista_recoms.append(item)
                         if len(lista_recoms) >= top_n:
-                            break  # Se detiene al completar la cantidad de recomendaciones solicitada (top_n)
+                            break  
 
-                    # 1. Cálculo del precio unitario y ganancia unitaria del producto ancla
                     precio_ancla = 75.50
                     ganancia_unit_ancla = 15.0
                     if df_cleaned is not None and 'sales' in df_cleaned.columns:
@@ -421,7 +417,7 @@ with tab_cross:
                             total_q = df_sku_match['quantity'].sum() if 'quantity' in df_sku_match.columns else len(df_sku_match)
                             
                             precio_ancla = (total_s / total_q) if total_q > 0 else df_sku_match['sales'].mean()
-                            ganancia_unit_ancla = (total_p / total_q) if total_p > 0 else df_sku_match['profit'].mean()
+                            ganancia_unit_ancla = (total_p / total_q) if total_q > 0 else df_sku_match['profit'].mean()
 
                     st.success(f"Estrategia generada para: **{nombre_ancla}** (`{producto_activo}`) | Precio Unitario Base: **${precio_ancla:,.2f} USD**")
 
@@ -448,6 +444,19 @@ with tab_cross:
                             
                             precios_unitarios_recomendados.append(p_unit)
                             ganancias_unitarias_recomendadas.append(g_unit)
+                            
+                            # --- CORRECCIÓN CLAVE: Añadir al listado DENTRO del ciclo for ---
+                            filas_tabla.append({
+                                "Ranking": idx,
+                                "SKU": sku_v,
+                                "Nombre del Artículo": nombre_v,
+                                "Categoría": cat_v,
+                                "Ventas API ($)": f"${sales_api:,.2f}",
+                                "Ganancia API ($)": f"${profit_api:,.2f}",
+                                "Cant. API": qty_api,
+                                "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
+                                "Similitud ML": score_v
+                            })
                             
                             with st.container():
                                 st.markdown(f"**{idx}. {nombre_v}** — *Cat: {cat_v}* (`SKU: {sku_v}`)")
@@ -478,18 +487,6 @@ with tab_cross:
                                     )
                             st.markdown("---")
 
-                        filas_tabla.append({
-                            "Ranking": idx,
-                            "SKU": sku_v,
-                            "Nombre del Artículo": nombre_v,
-                            "Categoría": cat_v,
-                            "Ventas API ($)": f"${sales_api:,.2f}",
-                            "Ganancia API ($)": f"${profit_api:,.2f}",
-                            "Cant. API": qty_api,
-                            "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
-                            "Similitud ML": score_v
-                        })
-
                         df_bundle = pd.DataFrame(filas_tabla)
                         df_bundle.index = range(1, len(df_bundle) + 1)
                         
@@ -501,13 +498,11 @@ with tab_cross:
                             mime='text/csv'
                         )
                         
-                        # Cálculos financieros correctos del combo unitario
                         suma_precios_unitarios = sum(precios_unitarios_recomendados)
                         precio_total_original = precio_ancla + suma_precios_unitarios
                         monto_descuento = precio_total_original * (paquete_descuento / 100.0)
                         precio_total_con_descuento = precio_total_original - monto_descuento
                         
-                        # Suma de ganancias unitarias de cada ítem del paquete
                         ganancia_base_combo = ganancia_unit_ancla + sum(ganancias_unitarias_recomendadas)
                         factor_descuento = 1.0 - (paquete_descuento / 100.0)
                         ganancia_neta_paquete_con_descuento = ganancia_base_combo * factor_descuento
@@ -521,7 +516,6 @@ with tab_cross:
                         mc3.metric("Ganancia Neta por Paquete", f"${ganancia_neta_paquete_con_descuento:,.2f} USD", delta="Utilidad del Combo" if ganancia_neta_paquete_con_descuento >= 0 else "Alerta Pérdida", delta_color="normal" if ganancia_neta_paquete_con_descuento >= 0 else "inverse")
                         mc4.metric("Artículos en Paquete", f"{len(lista_recoms) + 1} Ítems")
 
-                        # --- PROYECCIÓN FINANCIERA Y ROTACIÓN ESTIMADA DE INVENTARIO ---
                         st.markdown("---")
                         st.markdown("#### 📦 Proyección Financiera y Rotación Estimada de Inventario")
                         
@@ -568,7 +562,6 @@ with tab_cross:
                             * **Táctica:** Producto ancla de alta tracción comercial. Ofrecer este combo con un descuento del **{paquete_descuento}%** incentivará al comprador a adquirir el conjunto completo, incrementando sustancialmente el **Ticket Promedio** y mejorando la rotación general del catálogo secundario.
                             """)
                         
-                        # --- TABLA FINAL DE PRODUCTOS SUGERIDOS PARA EL PAQUETE ---
                         st.markdown("---")
                         st.markdown("#### 📋 Tabla Resumen de Productos Sugeridos para el Paquete")
                         st.dataframe(df_bundle, use_container_width=True)
