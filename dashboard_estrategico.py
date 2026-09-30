@@ -549,7 +549,7 @@ with tab_cross:
                                 """)
 
                         st.markdown("---")
-                        st.markdown("#### 💡 Plan de Acción y Rotación de Inventario")
+                        st.markdown("#### 💡 Plan de Acción y Rotación de Inventario.")
                         
                         if "Stock Lento" in tipo_rotacion:
                             st.warning(f"""
