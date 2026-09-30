@@ -29,7 +29,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📊 NexaData Intelligence: Reportes Estratégicos y Analítica Global")
+st.title("📊 NexaData Intelligence: Reportes Estratégicos y Analítica Global  .")
 
 # --- 2. CARGA DE ARTEFACTOS, DATOS Y MÉTRICAS DE API ---
 pipeline_path = "artifacts/pipeline"
@@ -103,7 +103,7 @@ model_knn = cargar_modelo_knn()
 # --- 3. PESTAÑAS DE NAVEGACIÓN ---
 tab_reportes, tab_geo, tab_cross = st.tabs([
     "📈 Reportes Estratégicos y KPIs", 
-    "🌍 Análisis Geográfico, Temporal y Preferencias",
+    "🌍 Análisis Comparativo de Países",
     "🛍️ Venta Cruzada & Rotación de Inventario (KNN)"
 ])
 
@@ -162,7 +162,6 @@ with tab_reportes:
         with col_g3:
             st.markdown("##### 🏷️ Participación en Ventas por Subcategoría: Top 5 y Otros")
             if 'sub_category' in df_cleaned.columns and 'sales' in df_cleaned.columns:
-                # Agrupar todas las subcategorías antes de seleccionar las líderes.
                 df_sub_total = (
                     df_cleaned.assign(
                         sub_category=df_cleaned['sub_category'].fillna('Sin subcategoría')
@@ -226,117 +225,105 @@ with tab_reportes:
     else:
         st.warning("⚠️ No se pudo cargar el archivo CSV o no hay datos para el rango seleccionado.")
 
-# --- PESTAÑA 2: ANÁLISIS GEOGRÁFICO, TEMPORAL Y PREFERENCIAS ---
+# --- PESTAÑA 2: ANÁLISIS GEOGRÁFICO Y COMPARATIVA ---
 with tab_geo:
-    st.subheader("🌐 Análisis Temporal y Preferencias del Consumidor por País")
+    st.subheader("🌐 Análisis Comparativo: Evolución y Preferencias por País")
     
     if df_cleaned is not None and not df_cleaned.empty:
         paises_disponibles = sorted(df_cleaned['country'].dropna().unique().tolist()) if 'country' in df_cleaned.columns else ["United States"]
         
-        if 'pais_seleccionado' not in st.session_state or st.session_state['pais_seleccionado'] not in paises_disponibles:
-            st.session_state['pais_seleccionado'] = paises_disponibles[0]
-
-        st.markdown("##### ⚙️ Filtro de Análisis Regional")
-        pais_seleccionado = st.selectbox(
-            "Selecciona un país para analizar su evolución temporal y preferencias:", 
-            paises_disponibles,
-            key='pais_seleccionado'
-        )
+        st.markdown("##### ⚙️ Filtros de Comparación Regional")
+        col_filtro1, col_filtro2 = st.columns(2)
         
-        df_filtrado_pais = df_cleaned[df_cleaned['country'] == pais_seleccionado]
+        with col_filtro1:
+            pais_1 = st.selectbox("Selecciona el País 1:", paises_disponibles, index=0)
+        with col_filtro2:
+            default_idx = 1 if len(paises_disponibles) > 1 else 0
+            pais_2 = st.selectbox("Selecciona el País 2:", paises_disponibles, index=default_idx)
 
         st.markdown("---")
 
-        st.markdown(f"##### 📈 Evolución de Ventas por Año en: {pais_seleccionado}")
-        if 'year' in df_filtrado_pais.columns and 'sales' in df_filtrado_pais.columns:
-            df_temporal = df_filtrado_pais.groupby('year')['sales'].sum().reset_index()
-            if not df_temporal.empty:
-                fig_tiempo = px.line(
-                    df_temporal, 
+        st.markdown(f"##### 📈 Evolución de Ventas Integrada: {pais_1} vs {pais_2}")
+        df_ambos_paises = df_cleaned[df_cleaned['country'].isin([pais_1, pais_2])]
+        
+        if 'year' in df_ambos_paises.columns and 'sales' in df_ambos_paises.columns:
+            df_temporal_comp = df_ambos_paises.groupby(['year', 'country'])['sales'].sum().reset_index()
+            if not df_temporal_comp.empty:
+                fig_tiempo_comp = px.line(
+                    df_temporal_comp, 
                     x='year', 
                     y='sales', 
+                    color='country',
                     markers=True, 
-                    text=df_temporal['sales'].apply(lambda x: f"${x:,.0f}"), 
+                    text=df_temporal_comp['sales'].apply(lambda x: f"${x:,.0f}"), 
                     template="plotly_white"
                 )
-                fig_tiempo.update_traces(textposition="top center")
-                st.plotly_chart(fig_tiempo, use_container_width=True)
+                fig_tiempo_comp.update_traces(textposition="top center")
+                fig_tiempo_comp.update_layout(xaxis_title="Año", yaxis_title="Ventas Totales (USD)")
+                st.plotly_chart(fig_tiempo_comp, use_container_width=True)
             else:
-                st.info(f"No hay registros temporales suficientes para {pais_seleccionado} en el rango de años seleccionado.")
+                st.info("No hay registros temporales suficientes para estos países en el rango de años.")
         
         st.markdown("---")
         
-        st.markdown(f"##### 🎯 Gustos del Consumidor y Productos Líderes en {pais_seleccionado}")
+        # --- COMPARATIVA LADO A LADO ---
+        st.markdown(f"##### 🎯 Comparativa Directa de Inteligencia Comercial")
+        col_p1, col_p2 = st.columns(2)
         
-        col_pref1, col_pref2 = st.columns(2)
-        
-        with col_pref1:
-            st.markdown(f"**Subcategorías Preferidas**")
-            if 'sub_category' in df_filtrado_pais.columns:
-                df_pref_sub = df_filtrado_pais.groupby('sub_category')['sales'].sum().reset_index().nlargest(5, 'sales')
-                if not df_pref_sub.empty:
-                    fig_pref_sub = px.bar(df_pref_sub, x='sales', y='sub_category', orientation='h', color='sub_category', template="plotly_white")
-                    fig_pref_sub.update_layout(yaxis={'categoryorder':'total ascending'}, showlegend=False)
-                    st.plotly_chart(fig_pref_sub, use_container_width=True)
-                else:
-                    st.info("Sin datos para este filtro.")
-                
-        with col_pref2:
-            st.markdown(f"**Productos Estrella**")
-            if 'product_name' in df_filtrado_pais.columns:
-                df_pref_prod = df_filtrado_pais.groupby(['product_name', 'category'])['sales'].sum().reset_index().nlargest(5, 'sales')
-                if not df_pref_prod.empty:
-                    st.dataframe(df_pref_prod[['product_name', 'category', 'sales']], use_container_width=True)
-                else:
-                    st.info("Sin datos para este filtro.")
-
-        st.markdown("---")
-
-        st.markdown(f"##### 📊 Top 10 Productos con Mayor Venta en {pais_seleccionado}")
-        if 'product_name' in df_filtrado_pais.columns and 'sales' in df_filtrado_pais.columns:
-            df_top_prod_bar = df_filtrado_pais.groupby('product_name')['sales'].sum().reset_index().nlargest(10, 'sales')
+        for idx, pais in enumerate([pais_1, pais_2]):
+            columna_activa = col_p1 if idx == 0 else col_p2
             
-            if not df_top_prod_bar.empty:
-                fig_prod_bar = px.bar(
-                    df_top_prod_bar, 
-                    x='sales', 
-                    y='product_name', 
-                    orientation='h', 
-                    color='sales',
-                    color_continuous_scale='Blues',
-                    template="plotly_white",
-                    text_auto='.2s'
-                )
-                fig_prod_bar.update_layout(yaxis={'categoryorder':'total ascending'}, showlegend=False, xaxis_title="Ventas Totales (USD)", yaxis_title="Producto")
-                st.plotly_chart(fig_prod_bar, use_container_width=True)
+            with columna_activa:
+                st.markdown(f"### 🌍 Mercado: {pais}")
+                df_pais = df_cleaned[df_cleaned['country'] == pais]
                 
-                st.markdown(f"##### 💡 Inteligencia de Negocio y Estrategia Comercial: {pais_seleccionado}")
+                # 1. KPIs del País
+                ventas_pais = df_pais['sales'].sum()
+                ordenes_pais = df_pais['order_id'].nunique() if 'order_id' in df_pais.columns else len(df_pais)
+                ticket_pais = ventas_pais / ordenes_pais if ordenes_pais > 0 else 0
                 
-                ventas_pais_total = df_filtrado_pais['sales'].sum()
-                ordenes_pais = df_filtrado_pais['order_id'].nunique() if 'order_id' in df_filtrado_pais.columns else len(df_filtrado_pais)
-                ticket_prom_pais = ventas_pais_total / ordenes_pais if ordenes_pais > 0 else 0
+                m1, m2 = st.columns(2)
+                m1.metric("Ventas Totales", formatear_usd(ventas_pais), f"{formatear_numero(ordenes_pais, 0)} Órdenes")
+                m2.metric("Ticket Promedio", formatear_usd(ticket_pais, compacto=False))
                 
-                top_producto_nombre = df_top_prod_bar.iloc[0]['product_name']
-                top_producto_ventas = df_top_prod_bar.iloc[0]['sales']
+                st.markdown("**Subcategorías Preferidas**")
+                if 'sub_category' in df_pais.columns:
+                    df_sub = df_pais.groupby('sub_category')['sales'].sum().reset_index().nlargest(5, 'sales')
+                    if not df_sub.empty:
+                        fig_sub = px.bar(df_sub, x='sales', y='sub_category', orientation='h', color='sub_category', template="plotly_white")
+                        fig_sub.update_layout(yaxis={'categoryorder':'total ascending'}, showlegend=False, height=250, margin=dict(l=0, r=0, t=0, b=0))
+                        st.plotly_chart(fig_sub, use_container_width=True)
+                    else:
+                        st.info("Sin datos.")
                 
-                subcat_lider = "General"
-                if 'sub_category' in df_filtrado_pais.columns:
-                    subcat_lider = df_filtrado_pais.groupby('sub_category')['sales'].sum().idxmax()
+                st.markdown("**Top Productos Estrella**")
+                df_top_prod = pd.DataFrame()
+                if 'product_name' in df_pais.columns and 'sales' in df_pais.columns:
+                    df_top_prod = df_pais.groupby('product_name')['sales'].sum().reset_index().nlargest(5, 'sales')
+                    if not df_top_prod.empty:
+                        fig_prod = px.bar(
+                            df_top_prod, x='sales', y='product_name', orientation='h', color='sales',
+                            color_continuous_scale='Blues', template="plotly_white", text_auto='.2s'
+                        )
+                        fig_prod.update_layout(yaxis={'categoryorder':'total ascending'}, showlegend=False, xaxis_title="Ventas (USD)", yaxis_title="", height=300, margin=dict(l=0, r=0, t=0, b=0))
+                        st.plotly_chart(fig_prod, use_container_width=True)
+                
+                # 2. Estrategia Sugerida
+                if not df_top_prod.empty:
+                    top_nombre = df_top_prod.iloc[0]['product_name']
+                    top_ventas = df_top_prod.iloc[0]['sales']
+                    subcat_lider = df_pais.groupby('sub_category')['sales'].sum().idxmax() if 'sub_category' in df_pais.columns else "General"
+                    
+                    st.success(f"""
+                    **🚀 Estrategia Recomendada**
+                    * **Motor de Ventas:** {top_nombre} (${top_ventas:,.2f}). 
+                    * **Acción:** Empaquetar este artículo con productos complementarios de la categoría **{subcat_lider}** aplicando un 10% de descuento. 
+                    * **Objetivo:** Incrementar el Ticket Promedio actual de ${ticket_pais:,.2f} USD.
+                    """)
+                else:
+                    st.info("Sin registros suficientes para generar estrategia.")
+                st.markdown("---")
 
-                m1, m2, m3 = st.columns(3)
-                m1.metric(f"Ventas Totales ({pais_seleccionado})", formatear_usd(ventas_pais_total), help=f"Importe exacto: {formatear_usd(ventas_pais_total, compacto=False)}")
-                m2.metric(f"Ticket Promedio ({pais_seleccionado})", formatear_usd(ticket_prom_pais, compacto=False))
-                m3.metric(f"Órdenes Regionales", formatear_numero(ordenes_pais, 0))
-
-                st.markdown("")
-                st.success(f"""
-                ### 🚀 Estrategia de Venta Cruzada y Recomendaciones para {pais_seleccionado}
-                * **Ancla Comercial Principal:** El producto **{top_producto_nombre}** es el motor principal de ventas en este país con **${top_producto_ventas:,.2f} USD**. 
-                * **Subcategoría Enfoque:** La categoría de mayor atracción en la región es **{subcat_lider}**.
-                * **Estrategia Cruzada Sugerida:** Se recomienda empaquetar **{top_producto_nombre}** con artículos complementarios de la subcategoría **{subcat_lider}**, ofreciendo un **10% de descuento en combo**. Esto incentivará el incremento del **Ticket Promedio actual (${ticket_prom_pais:,.2f} USD)** y mejorará la rotación de inventario secundario en el mercado de {pais_seleccionado}.
-                """)
-            else:
-                st.info("No hay suficientes registros de productos para el país y rango de años seleccionados.")
     else:
         st.warning("⚠️ Datos no disponibles para el análisis geográfico.")
 
@@ -489,19 +476,19 @@ with tab_cross:
                                         delta=estado_fin,
                                         delta_color=delta_col
                                     )
-                                st.markdown("---")
+                            st.markdown("---")
 
-                            filas_tabla.append({
-                                "Ranking": idx,
-                                "SKU": sku_v,
-                                "Nombre del Artículo": nombre_v,
-                                "Categoría": cat_v,
-                                "Ventas API ($)": f"${sales_api:,.2f}",
-                                "Ganancia API ($)": f"${profit_api:,.2f}",
-                                "Cant. API": qty_api,
-                                "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
-                                "Similitud ML": score_v
-                            })
+                        filas_tabla.append({
+                            "Ranking": idx,
+                            "SKU": sku_v,
+                            "Nombre del Artículo": nombre_v,
+                            "Categoría": cat_v,
+                            "Ventas API ($)": f"${sales_api:,.2f}",
+                            "Ganancia API ($)": f"${profit_api:,.2f}",
+                            "Cant. API": qty_api,
+                            "Precio Unit. ($ USD)": f"${p_unit:,.2f}",
+                            "Similitud ML": score_v
+                        })
 
                         df_bundle = pd.DataFrame(filas_tabla)
                         df_bundle.index = range(1, len(df_bundle) + 1)
